@@ -5,4 +5,8 @@ RUN apt-get update -qqq &&\
 
 RUN pip3 install cython
 
-ENTRYPOINT [ "/bin/bash" ]
+ENV CC verificarlo
+ENV FC verificarlo
+ENV LD verificarlo
+
+ENTRYPOINT [ "/bin/bash"]
