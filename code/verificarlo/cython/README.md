@@ -17,5 +17,17 @@ Then, build using the specified mode:
     ./manage.sh  # To use gcc
 
 Finally, test the function compiled from `mca_ext.pyx`:
+
     ./manage.sh test <integer>
 
+
+## Current status: failing with verificarlo
+At present, when building with Verificarlo, the build appears successful but
+ultimately it is failing to execute because of a "module not found" error in
+Python, looking for somethign related to the mca verificarlo interface.
+The exact stack trace is as follows:
+
+    $ ./manage.sh test 10
+    Traceback (most recent call last):
+      File "<string>", line 1, in <module>
+    ImportError: /home/users/gkiar/code/gkiar/stability-mca/code/verificarlo/cython/mca_ext.cpython-34m.so: undefined symbol: _vfc_current_mca_interface
