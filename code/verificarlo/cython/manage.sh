@@ -3,7 +3,7 @@
 # Clean up old build files
 if [ "$1" == "clean" ]
 then
-    rm -r ./*.ll ./*.c ./*.so build
+    rm -r ./*.ll ./*.c ./*.so build .vfcwrapper.o
     exit 0
 fi
 
@@ -26,7 +26,7 @@ echo $str
 
 export CC=$str
 export FC=$str
-export LD=$str
+export LDSHARED="$str -shared"
 
 # Build library
 python3 setup.py build_ext --inplace
