@@ -6,24 +6,44 @@ Gregory Kiar<sup>1,2</sup>, Tristan Glatard<sup>3</sup>
 
 ## Introduction
 - The numerical reproducibility of neuroimaging analyses is challenged by observations comparing results obtained with small data perturbations.
-- In this paper, we measure the compare the uncertainty of neuroimaging pipelines using two forms of stability analysis: one-voxel perturbations, and Monte-Carlo arithmetic analyses.
-- We evaluate the stability of structural connectome generation by performing simulations on a common deterministic tractography algorithm in diffusion MRI.
+- In this paper, we measure the compare the uncertainty of neuroimaging pipelines using various forms of stability analysis:
+  - one-voxel (epsilon) perturbations,
+  - Monte-Carlo arithmetic analyses,
+  - (time permitting) Operating system
+- We evaluate the stability of structural connectome generation by performing simulations on two modelling + tracing algorithms commonly used in diffusion MRI:
+  - Dipy 6-component tensor and EuDX (deterministic tracing)
+  - Dipy ODF and probabilistic tracing.
 
 ## Methods
 - Diffusion MRI NKI-RS dataset
-- Preprocessing done with FSL defaults
-- Modeling connectivity with Dipy deterministic tracing
+- Preprocessing done with FSL defaults and not evaulated here
+
+## Modeling
+- Lower-order processing:
+  - 6 component tensor model ("known" condition)
+  - EuDX deterministic tracing
+- Higher-order processing:
+  - ODF
+  - Probalistic tracing
 
 ### Noise injection
 - One-voxel noise:
   - Various noise strengths and injection locations
 - MCA
-  - Recompiling numpy with Verificarlo
-  - All operations replaced by simulations
-  
+  - Recompiling cython libs with Verificarlo
+  - (time permitting) Recompile blas+lapack with Verificarlo
+  - Test both recommended precision bits (24, 53)
+- OS
+  - Centos 5
+  - Centos 6
+  - Ubuntu 16
+
 ## Prospective Results
-- Characterization of noise in various 1-voxel settings
-- Comparison of mean of 1vox, MCA, and original graphs
-- Comparison of computational efficiency for 1vox and MCA methods
+- Figure 1
+  - Violin plots of an output norm for each noise setting and both session- and subject-differences
+- Figure 2
+  - Compare distributions and mean results for multiple repeitions of equiv. 1-voxel noise and MCA executions
+- Figure 3
+  - Comparison of computational efficiency for 1-voxel and MCA methods
 
 ## References
