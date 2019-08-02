@@ -27,7 +27,7 @@ RUN mkdir -p /opt/build/ && \
     ./configure --enable-optimizations --with-ensurepip=install
 
 RUN cd /opt/build/Python-3.6.5 && \
-    make -j 8
+    make
 
 ENV VERIFICARLO_MCAMODE "MCA"
 ENV VERIFICARLO_BACKEND "QUAD"
