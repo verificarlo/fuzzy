@@ -75,7 +75,7 @@ def parse_extra_args(args):
 	elif is_c(a):
             sources.append(a)
         else:
-            options.append(a)
+            options.append("'"+a+"'")
 
     return sources, ' '.join(options)
 

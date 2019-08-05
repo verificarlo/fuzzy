@@ -4,7 +4,8 @@ RUN apt-get update -qqq &&\
     apt-get install -y -qqq make build-essential libssl-dev zlib1g-dev \
                             libbz2-dev libreadline-dev libsqlite3-dev wget \
                             curl llvm libncurses5-dev  libncursesw5-dev \
-                            xz-utils tk-dev wget
+                            xz-utils tk-dev wget &&\
+    rm -rf /var/lib/apt/lists/
 
 # Copying the patched version which does an fPIC compilation instead of static
 COPY verificarlo /usr/local/bin/verificarlo
