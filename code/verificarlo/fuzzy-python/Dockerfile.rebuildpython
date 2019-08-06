@@ -29,6 +29,8 @@ RUN mkdir -p /opt/build/ && \
 
 RUN cd /opt/build/Python-3.6.5 && make
 
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo"
 ENV VERIFICARLO_MCAMODE "MCA"
 ENV VERIFICARLO_BACKEND "QUAD"
 
