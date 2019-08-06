@@ -1,0 +1,9 @@
+# exclusion list for compiling python 3.6.5 with verificarlo
+# parse floating point numbers, sensitive to FP errors
+Python/dtoa *
+Python/formatter_unicode *
+# require unique hashing every time
+Python/pyhash *
+# we should not mess with python internal scheduler clock
+Python/pytime *
+Python/sysmodule *
