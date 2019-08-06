@@ -29,6 +29,9 @@ RUN mkdir -p /opt/build/ &&\
     tar -xf blas-3.8.0.tar &&\
     cd /opt/build/BLAS-3.8.0/ &&\
     make
+ENV BLAS "/opt/build/BLAS-3.8.0/"
+ENV BLAS_SRC "/opt/build/BLAS-3.8.0/"
+
 
 RUN cd /opt/build/ &&\
     wget http://www.netlib.org/lapack/lapack-3.5.0.tgz &&\
@@ -41,20 +44,22 @@ RUN cd /opt/build/ &&\
     cd /opt/build/lapack-3.5.0/ &&\
     make
 
-# 
-# # TODO: replace the f77 command w/ verificarlo
-# 
-# # RUN mkdir -p /opt/build/ && \
-# #     cd /opt/build/ && \
-# #     wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz && \
-# #     tar xvf Python-3.6.5.tgz && \
-# #     cd Python-3.6.5 && \
-# #     ./configure --enable-optimizations --with-ensurepip=install
-# 
-# RUN cd /opt/build/Python-3.6.5 && \
-#     make
-# 
-# ENV VERIFICARLO_MCAMODE "MCA"
-# ENV VERIFICARLO_BACKEND "QUAD"
-# 
+ENV LAPACK "/opt/build/lapack-3.5.0/SRC/"
+ENV LAPACK_SRC "/opt/build/lapack-3.5.0/SRC/"
+
+#TODO: edit the make files to use verificarlo
+
+RUN cd /opt/build/ && \
+    wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz && \
+    tar xvf Python-3.6.5.tgz && \
+    cd Python-3.6.5 && \
+    ./configure --enable-optimizations --with-ensurepip=install &&\
+    make &&\
+    ln -s /opt/build/Python-3.6.5/python /usr/local/bin/python3.6 &&\
+    wget https://bootstrap.pypa.io/get-pip.py &&\
+    python3.6 get-pip.py
+
+ENV VERIFICARLO_MCAMODE "RR"
+ENV VERIFICARLO_BACKEND "QUAD"
+
 ENTRYPOINT [ "/bin/bash"]
