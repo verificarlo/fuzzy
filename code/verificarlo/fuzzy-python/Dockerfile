@@ -4,13 +4,17 @@ RUN apt-get update -qqq &&\
     apt-get install -y -qqq make build-essential libssl-dev zlib1g-dev \
                             libbz2-dev libreadline-dev libsqlite3-dev wget \
                             curl llvm libncurses5-dev  libncursesw5-dev \
-                            xz-utils tk-dev wget fort77 gfortran &&\
-    rm -rf /var/lib/apt/lists/
+                            xz-utils tk-dev wget fort77 gfortran cmake &&\
+    rm -rf /var/lib/apt/lists/ &&\
+    mkdir -p /opt/build/
 
-# Copying the patched version which does an fPIC compilation instead of static
-COPY verificarlo /usr/local/bin/verificarlo
+# Copy verificarlo's exclusion file for Python 3
+COPY python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
 
-ENV CC "verificarlo"
+# Setting compilers and linkers to use verificarlo
+# ... When compiling C, use exclusion file
+ENV CC "verificarlo --exclude-file /tmp/python-vfc-exclude.txt"
+ENV CXX "verificarlo"
 ENV FC "verificarlo"
 ENV LD "verificarlo"
 ENV LDSHARED "verificarlo -shared"
@@ -20,35 +24,22 @@ ENV VERIFICARLO_MCAMODE "IEEE"
 ENV VERIFICARLO_PRECISION "53"
 ENV VERIFICARLO_BACKEND "MPFR"
 
-# Build BLAS from following URL's instructions:
+# Build BLAS and LAPACK from the following URL's instructions:
 #  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
-RUN mkdir -p /opt/build/ &&\
-    cd /opt/build/ &&\
-    wget http://www.netlib.org/blas/blas-3.8.0.tgz &&\
-    gunzip blas-3.8.0.tgz &&\
-    tar -xf blas-3.8.0.tar &&\
-    cd /opt/build/BLAS-3.8.0/ &&\
-    make
-ENV BLAS "/opt/build/BLAS-3.8.0/"
-ENV BLAS_SRC "/opt/build/BLAS-3.8.0/"
-
-
 RUN cd /opt/build/ &&\
     wget http://www.netlib.org/lapack/lapack-3.5.0.tgz &&\
     gunzip lapack-3.5.0.tgz &&\
     tar xf lapack-3.5.0.tar &&\
     cd /opt/build/lapack-3.5.0/ &&\
     cp make.inc.example make.inc &&\
+    sed -i 's/= gcc\|= gfortran/= verificarlo/g' make.inc &&\
     cd /opt/build/lapack-3.5.0/BLAS/SRC/ &&\
     make &&\
     cd /opt/build/lapack-3.5.0/ &&\
-    make
+    cmake . && make &&\
+    cp lib/* /usr/local/lib/
 
-ENV LAPACK "/opt/build/lapack-3.5.0/SRC/"
-ENV LAPACK_SRC "/opt/build/lapack-3.5.0/SRC/"
-
-#TODO: edit the make files to use verificarlo
-
+## Build Python 3.6.5 from source and the associated pip
 RUN cd /opt/build/ && \
     wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz && \
     tar xvf Python-3.6.5.tgz && \
@@ -59,7 +50,9 @@ RUN cd /opt/build/ && \
     wget https://bootstrap.pypa.io/get-pip.py &&\
     python3.6 get-pip.py
 
-ENV VERIFICARLO_MCAMODE "RR"
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo"
+ENV VERIFICARLO_MCAMODE "MCA"
 ENV VERIFICARLO_BACKEND "QUAD"
 
 ENTRYPOINT [ "/bin/bash"]
