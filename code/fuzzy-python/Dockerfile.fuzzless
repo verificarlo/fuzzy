@@ -34,6 +34,10 @@ RUN cd /opt/build/ &&\
 
 ## Get Python 3.6.5 and the associated pip
 RUN apt-get update -qqq && \
-    apt-get install -y python3-dev python3-pip
+    apt-get install -y software-properties-common &&\
+    add-apt-repository ppa:deadsnakes/ppa &&\
+    apt-get update -qqq && \
+    apt-get install -y python3.6 &&\
+    curl https://bootstrap.pypa.io/get-pip.py | python3.6
 
 ENTRYPOINT [ "/bin/bash"]
