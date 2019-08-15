@@ -24,6 +24,18 @@ ENV VERIFICARLO_MCAMODE "IEEE"
 ENV VERIFICARLO_PRECISION "53"
 ENV VERIFICARLO_BACKEND "MPFR"
 
+## Build Python 3.6.5 from source and the associated pip
+RUN cd /opt/build/ && \
+    wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz && \
+    tar xvf Python-3.6.5.tgz && \
+    cd Python-3.6.5 && \
+    ./configure --enable-optimizations --with-ensurepip=install &&\
+    make &&\
+    ln -s /opt/build/Python-3.6.5/python /usr/local/bin/python3.6 &&\
+    cp pyconfig.h Include/*.h /usr/local/include/ &&\
+    wget https://bootstrap.pypa.io/get-pip.py &&\
+    python3.6 get-pip.py
+
 # Build BLAS and LAPACK from the following URL's instructions:
 #  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
 RUN cd /opt/build/ &&\
@@ -33,22 +45,19 @@ RUN cd /opt/build/ &&\
     cd /opt/build/lapack-3.5.0/ &&\
     cp make.inc.example make.inc &&\
     sed -i 's/= gcc\|= gfortran/= verificarlo/g' make.inc &&\
+    sed -i 's/-frecursive/-fPIC -frecursive/g' make.inc &&\
     cd /opt/build/lapack-3.5.0/BLAS/SRC/ &&\
     make &&\
-    cd /opt/build/lapack-3.5.0/ &&\
-    cmake . && make &&\
-    cp lib/* /usr/local/lib/
-
-## Build Python 3.6.5 from source and the associated pip
-RUN cd /opt/build/ && \
-    wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz && \
-    tar xvf Python-3.6.5.tgz && \
-    cd Python-3.6.5 && \
-    ./configure --enable-optimizations --with-ensurepip=install &&\
+    cd /opt/build/lapack-3.5.0/SRC/ &&\
     make &&\
-    ln -s /opt/build/Python-3.6.5/python /usr/local/bin/python3.6 &&\
-    wget https://bootstrap.pypa.io/get-pip.py &&\
-    python3.6 get-pip.py
+    cd /opt/build/lapack-3.5.0/ &&\
+    cp librefblas.a /usr/local/lib/libblas.a &&\
+    cp liblapack.a /usr/local/lib/liblapack.a
+
+# Build numpy from sources and link with the local BLAS and LAPACK
+COPY numpy-site.cfg /root/.numpy-site.cfg
+RUN pip3.6 install cython
+RUN pip3.6 install --no-binary :all: numpy
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo"
