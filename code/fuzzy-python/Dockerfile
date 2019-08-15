@@ -48,9 +48,11 @@ RUN cd /opt/build/ &&\
     sed -i 's/-frecursive/-fPIC -frecursive/g' make.inc &&\
     cd /opt/build/lapack-3.5.0/BLAS/SRC/ &&\
     make &&\
+    cd /opt/build/lapack-3.5.0/SRC/ &&\
+    make &&\
     cd /opt/build/lapack-3.5.0/ &&\
-    cmake . && make &&\
-    cp lib/* /usr/local/lib/
+    cp librefblas.a /usr/local/lib/libblas.a &&\
+    cp liblapack.a /usr/local/lib/liblapack.a
 
 # Build numpy from sources and link with the local BLAS and LAPACK
 COPY numpy-site.cfg /root/.numpy-site.cfg
