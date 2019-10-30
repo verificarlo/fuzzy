@@ -17,7 +17,7 @@ jobs:
     - cd docker
     - docker build -t ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-blas-lapack -f Dockerfile.ubuntu14.04-blas-lapack .
     - docker push ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-blas-lapack
-    script:
+  - script:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
     - cd docker
     - docker build -t ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-blas-lapack -f Dockerfile.ubuntu14.04-blas-lapack .
