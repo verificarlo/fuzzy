@@ -1,0 +1,33 @@
+FROM gkiar/fuzzy:ubuntu14.04-base
+
+# Setting compilers and linkers to use verificarlo
+# ... When compiling C, use exclusion file
+ENV CC "verificarlo --exclude-file /tmp/python-vfc-exclude.txt"
+ENV CXX "verificarlo"
+ENV FC "verificarlo"
+ENV LD "verificarlo"
+ENV LDSHARED "verificarlo -shared"
+
+# Copy verificarlo's exclusion file for Python3 and config for Numpy
+COPY resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
+COPY resources/numpy-site.cfg /root/.numpy-site.cfg
+
+## Build Python 3.6.5 from source and the associated pip
+RUN cd /opt/build/ && \
+    wget https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz && \
+    tar xvf Python-3.6.5.tgz && \
+    cd Python-3.6.5 && \
+    ./configure --enable-optimizations --with-ensurepip=install &&\
+    make &&\
+    ln -s /opt/build/Python-3.6.5/python /usr/local/bin/python3.6 &&\
+    cp pyconfig.h Include/*.h /usr/local/include/ &&\
+    wget https://bootstrap.pypa.io/get-pip.py &&\
+    python3.6 get-pip.py
+
+# Build numpy from sources and link with the local BLAS and LAPACK
+RUN pip3.6 install cython
+RUN pip3.6 install --no-binary :all: numpy
+
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo"
+ENV VFC_BACKENDS "libinterflop_mca.so -m mca"
