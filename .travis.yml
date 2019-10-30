@@ -1,5 +1,8 @@
 language: bash
 
+services:
+  -docker
+
 install:
  - cd docker
  - docker build -t gkiar/fuzzy:ubuntu14.04-base -f Dockerfile.ubuntu-14.04-verificarlo .
