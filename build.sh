@@ -5,4 +5,3 @@ tag=${2}
 
 cd docker
 docker build -t ${DOCKER_USERNAME}/fuzzy:${tag} -f ${dockerfile} .
-docker push ${DOCKER_USERNAME}/fuzzy:${tag}

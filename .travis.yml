@@ -9,14 +9,16 @@ jobs:
     script:
     - ./login.sh 
     - ./build.sh Dockerfile.ubuntu14.04-verificarlo ubuntu14.04-base
+    - ./push.sh ubuntu14.04-base
   - stage: L1 Images
     script:
     - ./login.sh 
     - ./build.sh Dockerfile.ubuntu14.04-blas-lapack ubuntu14.04-blas-lapack
+    - ./push.sh ubuntu14.04-blas-lapack
   - script:
-    - ./login.sh 
+    - ./login.sh
     - ./build.sh Dockerfile.ubuntu14.04-blas-lapack ubuntu14.04-blas-lapack
+    - ./push.sh ubuntu14.04-blas-lapack
   - stage: L2 Images
     script:
-    - ./login.sh 
     - docker run -ti --entrypoint "echo" ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-base "testing"
