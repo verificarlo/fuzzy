@@ -7,28 +7,16 @@ jobs:
  include:
   - stage: Verificarlo
     script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - cd docker
-    - docker build -t ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-base -f Dockerfile.ubuntu14.04-verificarlo .
-    - docker push ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-base
+    - ./login.sh 
+    - ./build.sh Dockerfile.ubuntu14.04-verificarlo ubuntu14.04-base
   - stage: L1 Images
     script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - cd docker
-    - docker build -t ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-blas-lapack -f Dockerfile.ubuntu14.04-blas-lapack .
-    - docker push ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-blas-lapack
+    - ./login.sh 
+    - ./build.sh Dockerfile.ubuntu14.04-blas-lapack ubuntu14.04-blas-lapack
   - script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - cd docker
-    - docker build -t ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-blas-lapack -f Dockerfile.ubuntu14.04-blas-lapack .
-    - echo 'done'
+    - ./login.sh 
+    - ./build.sh Dockerfile.ubuntu14.04-blas-lapack ubuntu14.04-blas-lapack
   - stage: L2 Images
     script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - cd docker
-    - docker pull ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-base
+    - ./login.sh 
     - docker run -ti --entrypoint "echo" ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-base "testing"
-    - echo 'done'
-  
-
-# for image in $(docker images gkiar/fuzzy --format "{{.Repository}}:{{.Tag}}"); do docker push $image ; done
