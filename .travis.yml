@@ -11,6 +11,4 @@ before_install:
 
 script:
  - docker images
- - for image in $(docker images gkiar/fuzzy --format "{{.Repository}}:{{.Tag}}")
- - do echo $image
- - done
+ - for image in $(docker images gkiar/fuzzy --format "{{.Repository}}:{{.Tag}}"); do docker push $image ; done
