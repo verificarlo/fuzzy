@@ -18,8 +18,9 @@ jobs:
     env: DFILE=Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
 
 script:
-- ./login.sh 
-- ./build.sh ${DFILE} ${DIMAGE}
+ - ./login.sh 
+ - ./build.sh ${DFILE} ${DIMAGE}
 
-if: tag IS present
-  - after_script: ./push.sh ${DIMAGE}
+after_script:
+ - if: tag is present
+ - ./push.sh ${DIMAGE}
