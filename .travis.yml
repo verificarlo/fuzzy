@@ -20,5 +20,6 @@ jobs:
 script:
 - ./login.sh 
 - ./build.sh ${DFILE} ${DIMAGE}
-- ./push.sh ${DIMAGE}
 
+if: tag IS present
+  - after_script: ./push.sh ${DIMAGE}
