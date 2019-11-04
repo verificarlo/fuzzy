@@ -9,6 +9,8 @@ RUN apt-get update &&\
 
 # Setting compilers and linkers to use verificarlo
 # ... When compiling C, use exclusion file
+ENV VFC_BACKENDS "libinterflop_ieee.so"
+
 ENV CC "verificarlo --exclude-file /tmp/python-vfc-exclude.txt"
 ENV CXX "verificarlo"
 ENV FC "verificarlo"
