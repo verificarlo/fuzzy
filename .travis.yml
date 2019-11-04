@@ -20,7 +20,6 @@ jobs:
 script:
  - ./login.sh 
  - ./build.sh ${DFILE} ${DIMAGE}
-
-after_script:
- - if: tag is present
- - ./push.sh ${DIMAGE}
+ 
+ after_script:
+ - if [ "$TRAVIS_TAG" != "" ]; then ./push.sh ${DIMAGE}; fi
