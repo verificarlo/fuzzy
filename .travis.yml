@@ -5,20 +5,20 @@ services:
 
 jobs:
  include:
-  - stage: Verificarlo
-    script:
-    - ./login.sh 
-    - ./build.sh Dockerfile.ubuntu14.04-verificarlo ubuntu14.04-base
-    - ./push.sh ubuntu14.04-base
-  - stage: L1 Images
-    script:
-    - ./login.sh 
-    - ./build.sh Dockerfile.ubuntu14.04-blas-lapack ubuntu14.04-blas-lapack
-    - ./push.sh ubuntu14.04-blas-lapack
-  - script:
-    - ./login.sh
-    - ./build.sh Dockerfile.ubuntu14.04-python ubuntu14.04-python
-    - ./push.sh ubuntu14.04-python
-  - stage: L2 Images
-    script:
-    - docker run -ti --entrypoint "echo" ${DOCKER_USERNAME}/fuzzy:ubuntu14.04-base "testing"
+  - stage: Base
+    name: Verificarlo
+    env: DFILE=Dockerfile.ubuntu14.04-verificarlo  DIMAGE=ubuntu14.04-base
+  - stage: Environments (Level 1)
+    name: Blas & Lapack
+    env: DFILE=Dockerfile.ubuntu14.04-blas-lapack  DIMAGE=ubuntu14.04-blas-lapack
+  - name: Python
+    env: DFILE=Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
+  - stage: Environments (Level 2)
+    name: "reapeat (tmp)"
+    env: DFILE=Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
+
+script:
+- ./login.sh 
+- ./build.sh ${DFILE} ${DIMAGE}
+- ./push.sh ${DIMAGE}
+
