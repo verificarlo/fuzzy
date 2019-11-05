@@ -18,8 +18,8 @@ jobs:
     env: DFILE=Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
 
 script:
- - ./login.sh 
- - ./build.sh ${DFILE} ${DIMAGE}
+ - ./fuzzy/build/login.sh 
+ - ./fuzzy/build/build.sh ${DFILE} ${DIMAGE}
  
 after_script:
- - if [ "$TRAVIS_TAG" != "" ]; then ./push.sh ${DIMAGE}; fi
+ - if [ "$TRAVIS_TAG" != "" ]; then ./fuzzy/build/push.sh ${DIMAGE}; fi
