@@ -7,15 +7,15 @@ jobs:
  include:
   - stage: Base
     name: Verificarlo
-    env: DFILE=Dockerfile.ubuntu14.04-verificarlo  DIMAGE=ubuntu14.04-base
+    env: DFILE=base/Dockerfile.ubuntu14.04-verificarlo  DIMAGE=ubuntu14.04-base
   - stage: Environments (Level 1)
     name: Blas & Lapack
-    env: DFILE=Dockerfile.ubuntu14.04-blas-lapack  DIMAGE=ubuntu14.04-blas-lapack
+    env: DFILE=level1/Dockerfile.ubuntu14.04-blas-lapack  DIMAGE=ubuntu14.04-blas-lapack
   - name: Python
-    env: DFILE=Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
+    env: DFILE=level1/Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
   - stage: Environments (Level 2)
     name: "reapeat (tmp)"
-    env: DFILE=Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
+    env: DFILE=level1/Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
 
 script:
  - ./fuzzy/build/login.sh 
