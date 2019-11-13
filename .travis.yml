@@ -22,5 +22,5 @@ script:
  - ./fuzzy/build/build.sh ${DFILE} ${DIMAGE}
  
 # Publish early stages always, only publish applications when we have a new tag (temporary)
- after_script:
+after_script:
   - if [ "$TRAVIS_TAG" != "" ] || [ "$TRAVIS_BUILD_STAGE_NAME" != "App" ]; then ./fuzzy/build/push.sh ${DIMAGE}; fi
