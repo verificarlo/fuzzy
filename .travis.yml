@@ -8,7 +8,7 @@ jobs:
   - stage: Base
     name: Verificarlo (Ubuntu 14.04)
     env: DFILE=base/Dockerfile.ubuntu14.04-verificarlo  DIMAGE=ubuntu14.04-base
-    name: Verificarlo (Ubuntu 18.04)
+  - name: Verificarlo (Ubuntu 18.04)
     env: DFILE=base/Dockerfile.ubuntu18.04-verificarlo  DIMAGE=ubuntu18.04-base
   - stage: Environments (Level 1)
     name: Blas & Lapack
