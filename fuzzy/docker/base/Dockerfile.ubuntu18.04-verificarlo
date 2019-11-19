@@ -9,7 +9,8 @@ RUN apt-get update &&\
                    bash ca-certificates\
                    binutils\
                    clang-4.0\
-                   gcc\
+                   gcc-4.8\
+                   g++-4.8\
                    git\
                    libedit-dev\
                    libmpfr-dev\
@@ -17,13 +18,16 @@ RUN apt-get update &&\
                    libz-dev\
                    llvm-4.0\
                    llvm-4.0-dev\
-                   make
+                   make\
+                   python3\
+                   python3-numpy\
+                   python3-matplotlib
 
-ENV LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/8:/usr/lib/llvm-4.0/lib:$LIBRARY_PATH
+ENV LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8:/usr/lib/llvm-4.0/lib:$LIBRARY_PATH
 
 RUN git clone https://github.com/verificarlo/verificarlo.git && \
     cd verificarlo &&\ 
     ./autogen.sh &&\
-    ./configure --with-llvm=/usr/lib/llvm-4.0/bin/ CC=gcc-7 CXX=g++-7 --without-dragonegg &&\
+    ./configure --with-llvm=/usr/lib/llvm-4.0/bin/ CC=gcc-4.8 CXX=g++-4.8 --without-dragonegg &&\
     make && make install
 
