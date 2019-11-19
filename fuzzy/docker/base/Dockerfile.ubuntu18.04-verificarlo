@@ -25,9 +25,11 @@ RUN apt-get update &&\
 
 ENV LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/4.8:/usr/lib/llvm-4.0/lib:$LIBRARY_PATH
 
-RUN git clone https://github.com/verificarlo/verificarlo.git && \
+RUN git clone https://github.com/verificarlo/verificarlo.git &&\
     cd verificarlo &&\ 
     ./autogen.sh &&\
     ./configure --with-llvm=/usr/lib/llvm-4.0/bin/ CC=gcc-4.8 CXX=g++-4.8 --without-dragonegg &&\
-    make && make install
+    make &&\
+    make install &&\
+    make installcheck
 
