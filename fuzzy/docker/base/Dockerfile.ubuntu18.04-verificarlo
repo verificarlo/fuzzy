@@ -23,7 +23,8 @@ RUN apt-get update &&\
                    python3-numpy\
                    python3-matplotlib
 
-ENV LD_LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/5:/usr/lib/llvm-3.9/lib:/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH /usr/lib/gcc/x86_64-linux-gnu/5:/usr/lib/llvm-3.9/lib:/usr/local/lib:$LD_LIBRARY_PATH
+ENV PYTHONPATH /usr/local/lib/python3.8/site-packages/:$PYTHONPATH
 
 # Tests fail with gcc-4.8 (missing symbol in VFC backend)
 RUN git clone https://github.com/verificarlo/verificarlo.git &&\
