@@ -9,8 +9,8 @@ RUN apt-get update &&\
                    bash ca-certificates\
                    binutils\
                    clang-4.0\
-                   gcc-5\
-                   g++-5\
+                   gcc-7\
+                   g++-7\
                    git\
                    libedit-dev\
                    libmpfr-dev\
@@ -24,17 +24,18 @@ RUN apt-get update &&\
                    python3-matplotlib
 # test_unstable_branches fails with older versions of llvm
 
-ENV LD_LIBRARY_PATH /usr/lib/gcc/x86_64-linux-gnu/5:/usr/lib/llvm-4.0/lib:/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH /usr/lib/gcc/x86_64-linux-gnu/7:/usr/lib/llvm-4.0/lib:/usr/local/lib:$LD_LIBRARY_PATH
 ENV PYTHONPATH /usr/local/lib/python3.6/site-packages/:$PYTHONPATH
 
 # Tests fail with gcc-4.8 (missing symbol in VFC backend)
+# Pytorch requires gcc > 7
 # configure without fortran support as llvm > 3.6
 # Removing setarch from vfc_ddebug as it crashes when Docker is run withouth privileged mode
 RUN git clone https://github.com/verificarlo/verificarlo.git &&\
     cd verificarlo &&\ 
     sed -i s,setarch\ \$\(uname\ -m\)\ \-R,,g src/vfc_ddebug &&\
     ./autogen.sh &&\
-    ./configure --with-llvm=/usr/lib/llvm-4.0/bin/ CC=gcc-5 CXX=g++-5 --without-dragonegg &&\
+    ./configure --with-llvm=/usr/lib/llvm-4.0/bin/ CC=gcc-7 CXX=g++-7 --without-dragonegg &&\
     make &&\
     make install
 
