@@ -2,7 +2,7 @@ FROM gkiar/fuzzy:ubuntu14.04-blas-lapack
 
 # Copy verificarlo's exclusion file for Python 3
 COPY resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
-COPY resources/umpy-site.cfg /root/.numpy-site.cfg
+COPY resources/numpy-site.cfg /root/.numpy-site.cfg
 
 # Setting compilers and linkers to use verificarlo
 # ... When compiling C, use exclusion file
