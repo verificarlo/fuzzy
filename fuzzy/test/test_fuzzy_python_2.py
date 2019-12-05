@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec  4 11:54:21 2019
-
-@author: rhann
-"""
-
 # Goal 1:
 
 # Write a script in Python/Java (other other programming language of interest)
