@@ -37,20 +37,25 @@ def second_function(N, B):
     return N
 
 
-def u(K):
+def u(K, dtype=float):
+    K=dtype(K)
     if K == 0:
-        return 2
+        return dtype(2)
     elif K == 1:
-        return -4
+        return dtype(-4)
     else:
         uminus1 = u(K - 1)
         uminus2 = u(K - 2)
         return 111 - (1130/uminus1) + 3000/(uminus1 * uminus2)
 
 
-def X(N):
+# X(30)
+# X(30, dtype=np.float32)
+# X(30, dtype=np.float64)
+def X(N, dtype=float):
+    N = dtype(N)
     if N == 0:
-        return 1.5100050721319
+        return dtype(1.5100050721319)
     else:
         xminus1 = X(N - 1)
         return ((3*xminus1**4) - (20*xminus1**3) + (35*xminus1**2) - 24) / \
@@ -69,8 +74,9 @@ def run_x_times(function, x, *args):
 # run u(k) ~ 100 times
 # compute std and mean
 # print k, mean, and std to screen
-for _ in range(30):
-    print(run_x_times(u, 10000, _))
+for t in [np.float32, np.float64]:
+    for _ in range(30):
+        print(run_x_times(u, 10000, _, t))
 
 # print(run_x_times(third_function, 100000, 100000))
 # print(X(30))
