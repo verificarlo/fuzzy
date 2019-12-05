@@ -14,8 +14,8 @@ jobs:
   - name: Python
     env: DFILE=level1/Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
   - stage: Environments (Level 2)
-    name: "reapeat (tmp)"
-    env: DFILE=level1/Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
+    name: Python & Numpy
+    env: DFILE=level2/Dockerfile.ubuntu14.04-python-numpy DIMAGE=ubuntu14.04-python-numpy
 
 script:
  - ./fuzzy/build/login.sh 
