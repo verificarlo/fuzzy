@@ -10,11 +10,20 @@
 While computational pipelines have become essential for processing large quantities of data,
 the stability or *trustworthiness* of tools often remains unknown. Limitations of floating point
 data and subsequent arithmetic show their colours in even
-[incredibly simple operations](./fuzzy/tutorial/inaccuracies_everywhere.ipynb).
+[incredibly simple operations](./fuzzy/tutorial/inaccuracies_everywhere.ipynb). While the linked
+example demonstrates unexpected results that are relatively minor, this effect can have cascading
+impact that lead to [quantifiable and significant errors](./fuzzy/tutorial/evaluating_unstable_sequence.ipynb).
+Though the examples above can be evaluated based on their relative error compared to an expected
+correct value, many real-world applications have unknown "truth", and thus can't be evaluated in
+this way.
+
+This project aims to provide an environment in which the stability of programs can be evaluated,
+so that developers may evaluate the trustworthiness of their tools even in the absense of truth.
+
 
 ## Usage
 
-We have produced man
+*Coming soon*!
 
 ## Supported Languages/Libraries
 
@@ -28,6 +37,9 @@ We have produced man
 
 ## Build Instructions
 
-Try building the container as follows:
+*Coming soon*!
 
-    docker build -t gkiar/fuzzy-python .
+## Contributing
+
+*Coming soon*!
+
