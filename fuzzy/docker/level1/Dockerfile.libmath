@@ -1,7 +1,4 @@
-FROM verificarlo/verificarlo:latest
-
-RUN apt-get update &&\
-    apt-get install -y make build-essential wget
+FROM gkiar/fuzzy:ubuntu14.04-base
 
 
 # Compile openlibmath with verificarlo 
