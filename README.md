@@ -5,7 +5,16 @@
 
 *A fuzzy ecosystem for evaluating the stability of your computational tools.*
 
+## Motivation
+
+While computational pipelines have become essential for processing large quantities of data,
+the stability or *trustworthiness* of tools often remains unknown. Limitations of floating point
+data and subsequent arithmetic show their colours in even
+[incredibly simple operations](./fuzzy/tutorial/inaccuracies_everywhere.ipynb).
+
 ## Usage
+
+We have produced man
 
 ## Supported Languages/Libraries
 
@@ -22,6 +31,3 @@
 Try building the container as follows:
 
     docker build -t gkiar/fuzzy-python .
-
-## Contributing
-
