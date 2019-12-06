@@ -13,7 +13,7 @@ jobs:
     env: DFILE=level1/Dockerfile.ubuntu14.04-blas-lapack  DIMAGE=ubuntu14.04-blas-lapack
   - name: Python
     env: DFILE=level1/Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
-    name: Libmath
+  - name: Libmath
     env: DFILE=level1/Dockerfile.libmath DIMAGE=ubuntu14.04-libmath
   - stage: Environments (Level 2)
     name: Python & Numpy
