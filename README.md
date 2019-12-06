@@ -3,6 +3,8 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/gkiar/fuzzy)](https://hub.docker.com/r/gkiar/fuzzy)
 [![GPL Licensed](https://img.shields.io/badge/license-GPL-blue)](./LICENSE)
 
+![Fuzzy Marimo](./img/fuzzy.png)
+
 *A fuzzy ecosystem for evaluating the stability of your computational tools.*
 
 ## Motivation
