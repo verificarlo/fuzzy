@@ -2,6 +2,6 @@ FROM gkiar/fuzzy:ubuntu14.04-libmath
 
 RUN apt-get update && apt install -y wget
 
-ADD fuzzy/docker/apps/fsl/neurodebian-travis.sh /tmp
+ADD fuzzy/fuzzy/docker/apps/fsl/neurodebian-travis.sh /tmp
 RUN bash /tmp/neurodebian-travis.sh
 RUN apt install -y fsl
