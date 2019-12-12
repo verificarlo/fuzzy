@@ -18,6 +18,9 @@ jobs:
   - stage: Environments (Level 2)
     name: Python & Numpy
     env: DFILE=level2/Dockerfile.ubuntu14.04-python-numpy DIMAGE=ubuntu14.04-python-numpy
+  - stage: Applications
+    name: FSL
+    env: DFILE=apps/fsl/Dockerfile.libmath.fsl DIMAGE=ubuntu14.04-libmath-fsl
 
 script:
  - ./fuzzy/build/login.sh 
