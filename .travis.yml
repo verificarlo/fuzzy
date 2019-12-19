@@ -23,7 +23,7 @@ jobs:
   - stage: Applications
     name: FSL
     env: DFILE=apps/fsl/Dockerfile.libmath.fsl DIMAGE=ubuntu14.04-libmath-fsl
-    name: AFNI
+  - name: AFNI
     env: DFILE=apps/afni/Dockerfile.libmath.afni DIMAGE=ubuntu14.04-libmath-afni
 
 
