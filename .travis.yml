@@ -3,6 +3,9 @@ language: bash
 services:
  - docker
 
+git:
+ - submodules: false
+
 jobs:
  include:
   - stage: Base
