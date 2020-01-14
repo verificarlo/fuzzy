@@ -4,6 +4,8 @@ FROM gkiar/fuzzy:ubuntu14.04-blas-lapack
 COPY resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
 COPY resources/numpy-site.cfg /root/.numpy-site.cfg
 
+ENV VFC_BACKENDS "libinterflop_ieee.so"
+
 # Setting compilers and linkers to use verificarlo
 # ... When compiling C, use exclusion file
 ENV CC "verificarlo --exclude-file /tmp/python-vfc-exclude.txt"
