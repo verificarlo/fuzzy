@@ -1,4 +1,4 @@
-[![Fuzzy Marimo](./img/fuzzy.png)](https://github.com/gkiar/fuzzy/img/fuzzy.png)
+[![Fuzzy Marimo](https://github.com/gkiar/fuzzy/raw/master/img/fuzzy.png)](./img/fuzzy.png)
 
 # Fuzzy 
 
