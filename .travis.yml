@@ -27,7 +27,9 @@ jobs:
   - name: AFNI
     env: DFILE=apps/afni/Dockerfile.libmath.afni DIMAGE=ubuntu14.04-libmath-afni
   - name: AFQ (Dipy)
-    env: DFILE=apps/dipy-afq/Dockerfile.python-numpy-dipy-afq DIMAGE=ubuntu14.04-python-dipy-afq
+    env: DFILE=apps/dipy-afq/Dockerfile.python-numpy-dipy-afq DIMAGE=ubuntu14.04-python-numpy-dipy-afq
+  - name: AFQ (Dipy) -- Python Only
+    env: DFILE=apps/dipy-afq/Dockerfile.python-dipy-afq DIMAGE=ubuntu14.04-python-dipy-afq
 
 
 script:
