@@ -1,4 +1,4 @@
-FROM gkiar/fuzzy:ubuntu14.04-libmath
+FROM gkiar/fuzzy:libmath
 
 RUN apt-get update && apt install -y curl libxt6 tcsh libxft2 libxp6 libxpm4 libxmu6
 

@@ -1,4 +1,4 @@
-FROM gkiar/fuzzy:ubuntu14.04-blas-lapack
+FROM gkiar/fuzzy:blas-lapack
 
 # Copy verificarlo's exclusion file for Python 3
 COPY resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt

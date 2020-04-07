@@ -1,4 +1,4 @@
-FROM gkiar/fuzzy:ubuntu14.04-python-numpy
+FROM gkiar/fuzzy:python-numpy
 
 RUN pip3.6 install fury pyafq dipy
 RUN pip3.6 install --upgrade scikit-image

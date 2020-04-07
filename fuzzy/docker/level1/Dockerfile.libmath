@@ -1,4 +1,4 @@
-FROM gkiar/fuzzy:ubuntu14.04-base
+FROM gkiar/fuzzy:base
 
 
 # Compile openlibmath with verificarlo 

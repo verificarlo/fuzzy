@@ -1,5 +1,0 @@
-FROM verificarlo/verificarlo:v0.2.3
-
-RUN cd /verificarlo &&\
-    make installcheck
-
