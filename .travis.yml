@@ -10,26 +10,26 @@ jobs:
  include:
   - stage: Base
     name: Verificarlo
-    env: DFILE=base/Dockerfile.ubuntu14.04-verificarlo  DIMAGE=ubuntu14.04-base
+    env: DFILE=base/Dockerfile.verificarlo  DIMAGE=base
   - stage: Environments (Level 1)
     name: Blas & Lapack
-    env: DFILE=level1/Dockerfile.ubuntu14.04-blas-lapack  DIMAGE=ubuntu14.04-blas-lapack
+    env: DFILE=level1/Dockerfile.blas-lapack  DIMAGE=blas-lapack
   - name: Python
-    env: DFILE=level1/Dockerfile.ubuntu14.04-python       DIMAGE=ubuntu14.04-python
+    env: DFILE=level1/Dockerfile.python       DIMAGE=python
   - name: Libmath
-    env: DFILE=level1/Dockerfile.libmath DIMAGE=ubuntu14.04-libmath
+    env: DFILE=level1/Dockerfile.libmath DIMAGE=libmath
   - stage: Environments (Level 2)
     name: Python & Numpy
-    env: DFILE=level2/Dockerfile.ubuntu14.04-python-numpy DIMAGE=ubuntu14.04-python-numpy
+    env: DFILE=level2/Dockerfile.python-numpy DIMAGE=python-numpy
   - stage: Applications
     name: FSL
-    env: DFILE=apps/fsl/Dockerfile.libmath.fsl DIMAGE=ubuntu14.04-libmath-fsl
+    env: DFILE=apps/fsl/Dockerfile.libmath-fsl DIMAGE=libmath-fsl
   - name: AFNI
-    env: DFILE=apps/afni/Dockerfile.libmath.afni DIMAGE=ubuntu14.04-libmath-afni
+    env: DFILE=apps/afni/Dockerfile.libmath-afni DIMAGE=libmath-afni
   - name: AFQ (Dipy)
-    env: DFILE=apps/dipy-afq/Dockerfile.python-numpy-dipy-afq DIMAGE=ubuntu14.04-python-numpy-dipy-afq
+    env: DFILE=apps/dipy-afq/Dockerfile.python-numpy-dipy-afq DIMAGE=python-numpy-dipy-afq
   - name: AFQ (Dipy) -- Python Only
-    env: DFILE=apps/dipy-afq/Dockerfile.python-dipy-afq DIMAGE=ubuntu14.04-python-dipy-afq
+    env: DFILE=apps/dipy-afq/Dockerfile.python-dipy-afq DIMAGE=python-dipy-afq
 
 
 script:
