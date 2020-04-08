@@ -1,6 +1,9 @@
 FROM gkiar/fuzzy:libmath
 
-RUN apt-get update && apt install -y curl libxt6 tcsh libxft2 libxp6 libxpm4 libxmu6
+RUN wget ftp.us.debian.org/debian/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb &&\
+    dpkg -i libxp6_1.0.2-2_amd64.deb && rm libxp6_1.0.2-2_amd64.deb
+
+RUN apt-get update && apt-get install -y curl libxt6 tcsh libxft2 libxpm4 libxmu6
 
 RUN (cd && curl -O https://afni.nimh.nih.gov/pub/dist/bin/linux_ubuntu_16_64/@update.afni.binaries &&\
     tcsh @update.afni.binaries -package linux_openmp_64 -do_extras)
