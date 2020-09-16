@@ -1,0 +1,18 @@
+sudo mkdir -p /etc/verificarlo
+cat << 'EOF' | sudo tee /etc/verificarlo/inclusion-file >> /dev/null
+# [file without suffix] [mangled function name]
+# Calls to verificarlo are made using full paths
+/var/lib/jenkins/workspace/build/aten/src/ATen/native/cpu/BlasKernel.cpp.DEFAULT *
+/var/lib/jenkins/workspace/build/aten/src/ATen/native/cpu/BlasKernel.cpp.AVX *
+/var/lib/jenkins/workspace/build/aten/src/ATen/native/cpu/BlasKernel.cpp.AVX2 *
+EOF
+cat << 'EOF' | sudo tee /usr/local/bin/verificarlo-c >> /dev/null
+#!/bin/bash
+
+verificarlo --linker=clang -Qunused-arguments --include-file=/etc/verificarlo/inclusion-file ${@}
+EOF
+cat << 'EOF' | sudo tee /usr/local/bin/verificarlo-c++ >> /dev/null
+#!/bin/bash
+
+verificarlo --linker=clang++ -Qunused-arguments --include-file=/etc/verificarlo/inclusion-file ${@}
+EOF
