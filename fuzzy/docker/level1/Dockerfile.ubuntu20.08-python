@@ -1,0 +1,59 @@
+FROM verificarlo/verificarlo:latest
+
+RUN apt-get update -qqq &&\
+    apt-get install -y -qqq make build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev wget \
+    curl llvm libncurses5-dev  libncursesw5-dev \
+    xz-utils tk-dev wget fort77 gfortran cmake &&\
+    rm -rf /var/lib/apt/lists/ &&\
+    mkdir -p /opt/build/
+
+# Copy verificarlo's exclusion file for Python 3
+COPY resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
+
+# cmake CMAKE_C_COMPILER=verificarlo-c CMAKE_Fortran_COMPILER=verificarlo-f BUILD_SHARED_LIBS=ON .
+
+# Setting compilers and linkers to use verificarlo
+ENV CC "verificarlo-c"
+ENV CXX "verificarlo-cpp"
+ENV FC "verificarlo-f"
+
+# Load backend IEEE
+ENV VFC_BACKENDS="libinterflop_ieee.so"
+
+## Build Python 3.6.5 from source and the associated pip
+RUN cd /opt/build/ && \
+    wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
+    tar xvf Python-3.8.5.tgz && \
+    cd Python-3.8.5 && \
+    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" ./configure --enable-optimizations --with-ensurepip=install &&\
+    make -j &&\
+    make install &&\ 
+    wget https://bootstrap.pypa.io/get-pip.py &&\
+    python3 get-pip.py
+
+# Build BLAS and LAPACK from the following URL's instructions:
+#  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
+RUN cd /opt/build/ &&\
+    wget http://www.netlib.org/lapack/lapack-3.9.0.tgz &&\
+    gunzip lapack-3.9.0.tgz &&\
+    tar xf lapack-3.9.0.tar &&\
+    cd /opt/build/lapack-3.9.0/ &&\
+    cp make.inc.example make.inc &&\
+    sed -i 's/= gcc/= verificarlo-c/g' make.inc &&\
+    sed -i 's/= gfortran/= verificarlo-f/g' make.inc &&\
+    sed -i 's/TIMER    = INT_ETIME/#TIMER    = INT_ETIME/g' make.inc &&\
+    sed -i 's/# TIMER = NONE/TIMER = NONE/g' make.inc &&\
+    mkdir build &&\
+    cd /opt/build/lapack-3.9.0/build &&\
+    cmake FC=verificarlo-f -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=verificarlo-c -DCMAKE_Fortran_COMPILER=verificarlo-f \
+    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON  .. &&\
+    make &&\
+    make install
+
+
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo-c"
+ENV VFC_BACKENDS "libinterflop_mca.so -m rr"
+
+ENTRYPOINT [ "/bin/bash"]
