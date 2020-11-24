@@ -1,0 +1,7 @@
+FROM gkiar/fuzzy:libmath
+
+RUN apt-get update && apt install -y wget
+
+ADD resources/neurodebian-travis.sh /tmp
+RUN bash /tmp/neurodebian-travis.sh
+RUN apt install -y fsl
