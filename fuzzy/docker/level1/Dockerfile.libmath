@@ -1,7 +1,7 @@
 FROM verificarlo/verificarlo:latest
 
 # Create instrumented shared mathematical library
-RUN git clone https://github.com/ali4006/MCA-libmath.git /tmp/mca-libmath/ &&\
+RUN git clone https://github.com/big-data-lab-team/MCA-libmath.git /tmp/mca-libmath/ &&\
     cd /tmp/mca-libmath/src/ &&\
     make
 
