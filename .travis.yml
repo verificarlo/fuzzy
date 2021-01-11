@@ -30,13 +30,14 @@ jobs:
     env: DFILE=apps/dipy-afq/Dockerfile.python-numpy-dipy-afq DIMAGE=python-numpy-dipy-afq
   - name: AFQ (Dipy) -- Python Only
     env: DFILE=apps/dipy-afq/Dockerfile.python-dipy-afq DIMAGE=python-dipy-afq
-
+  - name: PyTorch
+    env: DFILE=apps/pytorch/Dockerfile.pytorch DIMAGE=pytorch
 
 script:
- - ./fuzzy/build/login.sh 
+ - ./fuzzy/build/login.sh
  - ./fuzzy/build/build.sh ${DFILE} ${DIMAGE}
  # - travis_wait 30 ./fuzzy/build/build.sh ${DFILE} ${DIMAGE}
- 
+
 # Publish early stages always, only publish applications when we have a new tag (temporary)
 # - if [ "$TRAVIS_TAG" != "" ] || [ "$TRAVIS_BUILD_STAGE_NAME" != "App" ]; then ./fuzzy/build/push.sh ${DIMAGE}; fi
 

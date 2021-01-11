@@ -1,0 +1,39 @@
+diff --git a/.jenkins/pytorch/build.sh b/.jenkins/pytorch/build.sh
+index 8730b61..23c9f92 100755
+--- a/.jenkins/pytorch/build.sh
++++ b/.jenkins/pytorch/build.sh
+@@ -194,6 +194,12 @@ if [[ "${BUILD_ENVIRONMENT}" == *clang* ]]; then
+   export CXX=clang++
+ fi
+
++if [[ "${BUILD_ENVIRONMENT}" == *verificarlo* ]]; then
++  export CC=verificarlo-c
++  export CXX=verificarlo-c++
++  export VFC_BACKENDS=libinterflop_ieee.so # So that cmake checks pass
++fi
++
+ # Patch required to build xla
+ if [[ "${BUILD_ENVIRONMENT}" == *xla* ]]; then
+   git clone --recursive https://github.com/pytorch/xla.git
+@@ -218,7 +224,7 @@ else
+     # ppc64le build fails when WERROR=1
+     # set only when building other architectures
+     # only use for "python setup.py install" line
+-    if [[ "$BUILD_ENVIRONMENT" != *ppc64le*  && "$BUILD_ENVIRONMENT" != *clang* ]]; then
++    if [[ "$BUILD_ENVIRONMENT" != *ppc64le*  && "$BUILD_ENVIRONMENT" != *clang* && "$BUILD_ENVIRONMENT" != *verificarlo* ]]; then
+       WERROR=1 python setup.py install
+     else
+       python setup.py install
+diff --git a/.jenkins/pytorch/common_utils.sh b/.jenkins/pytorch/common_utils.sh
+index 682dd29b4c..645063251b 100644
+--- a/.jenkins/pytorch/common_utils.sh
++++ b/.jenkins/pytorch/common_utils.sh
+@@ -18,7 +18,7 @@ function cleanup {
+ function assert_git_not_dirty() {
+     # TODO: we should add an option to `build_amd.py` that reverts the repo to
+     #       an unmodified state.
+-    if ([[ "$BUILD_ENVIRONMENT" != *rocm* ]] && [[ "$BUILD_ENVIRONMENT" != *xla* ]]) ; then
++    if ([[ "$BUILD_ENVIRONMENT" != *rocm* ]] && [[ "$BUILD_ENVIRONMENT" != *xla* ]] && [[ "$BUILD_ENVIRONMENT" != *verificarlo* ]]) ; then
+         git_status=$(git status --porcelain)
+         if [[ $git_status ]]; then
+             echo "Build left local git repository checkout dirty"

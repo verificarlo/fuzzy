@@ -1,0 +1,121 @@
+FROM ubuntu:18.04 AS builder
+
+# Used by install scripts
+ARG UBUNTU_VERSION=18.04
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Install common dependencies (so that this step can be cached separately)
+ADD resources/pytorch/build-deps-installers/install_base.sh install_base.sh
+RUN bash ./install_base.sh && rm install_base.sh
+
+# Install clang
+ARG LLVMDEV=yes
+ARG CLANG_VERSION=9
+ADD resources/pytorch/build-deps-installers/install_clang.sh install_clang.sh
+RUN bash ./install_clang.sh && rm install_clang.sh
+
+# Install user
+ADD resources/pytorch/build-deps-installers/install_user.sh install_user.sh
+RUN bash ./install_user.sh && rm install_user.sh
+
+# Install conda
+ENV PATH /opt/conda/bin:$PATH
+ARG ANACONDA_PYTHON_VERSION=3.6
+ADD resources/pytorch/build-deps-installers/install_conda.sh install_conda.sh
+RUN bash ./install_conda.sh && rm install_conda.sh
+
+# Install Verificarlo
+ARG VERIFICARLO_VERSION=github
+ADD resources/pytorch/build-deps-installers/install_verificarlo.sh install_verificarlo.sh
+RUN bash ./install_verificarlo.sh && rm install_verificarlo.sh
+
+# Install protobuf for ONNX
+ARG PROTOBUF=yes
+ADD resources/pytorch/build-deps-installers/install_protobuf.sh install_protobuf.sh
+RUN if [ -n "${PROTOBUF}" ]; then bash ./install_protobuf.sh; fi
+RUN rm install_protobuf.sh
+ENV INSTALLED_PROTOBUF ${PROTOBUF}
+
+# Install database packages like LMDB and LevelDB
+ARG DB=yes
+ADD resources/pytorch/build-deps-installers/install_db.sh install_db.sh
+RUN if [ -n "${DB}" ]; then bash ./install_db.sh; fi
+RUN rm install_db.sh
+ENV INSTALLED_DB ${DB}
+
+# Install vision packages like OpenCV and ffmpeg
+ARG VISION=yes
+ADD resources/pytorch/build-deps-installers/install_vision.sh install_vision.sh
+RUN if [ -n "${VISION}" ]; then bash ./install_vision.sh; fi
+RUN rm install_vision.sh
+ENV INSTALLED_VISION ${VISION}
+
+# Install ccache/sccache (do this last, so we get priority in PATH)
+ADD resources/pytorch/build-deps-installers/install_cache.sh install_cache.sh
+ENV PATH /opt/cache/bin:$PATH
+RUN bash ./install_cache.sh && rm install_cache.sh
+
+# Install LLVM dev version (Defined in the pytorch/builder github repository)
+COPY --from=pytorch/llvm:9.0.1 /opt/llvm /opt/llvm
+
+USER jenkins
+
+# WORKDIR would create it but as root
+RUN mkdir /var/lib/jenkins/workspace
+
+WORKDIR /var/lib/jenkins/workspace
+RUN git clone https://github.com/pytorch/pytorch . && \
+    git checkout 490d41aaa61a9c0b12637e40cec066bf0e9515f3 && \
+    git submodule sync && git submodule update -q --init --recursive
+
+# Patch build script
+ADD resources/pytorch/build_script_patch .
+RUN git apply build_script_patch
+
+# Disable BLAS
+ADD resources/pytorch/patch_disabling_blas .
+RUN git apply patch_disabling_blas
+
+# Setup function instrumentation
+ADD resources/pytorch/script_setting_up_function_instrumentation .
+RUN bash script_setting_up_function_instrumentation
+
+ENV IN_CIRCLECI=1 \
+    BUILD_ENVIRONMENT=pytorch-linux-bionic-py3.6-verificarlo-build
+
+ARG MAX_JOBS=7
+
+RUN .jenkins/pytorch/build.sh && \
+    find . -type f -name "*.a" -or -name "*.o" -or -name "*.ll" -delete
+
+
+# =================================
+#      Final lightweight image
+# =================================
+FROM    ubuntu:18.04
+
+RUN     apt-get update && \
+        apt-get install -y wget && \
+        wget -q "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" && \
+        chmod +x ./Miniconda3-latest-Linux-x86_64.sh && \
+        ./Miniconda3-latest-Linux-x86_64.sh -b -f -p "/opt/conda" && \
+        /opt/conda/bin/conda install -y python="3.6" numpy=1.18.5 pyyaml mkl mkl-include setuptools \
+                                        cffi typing typing_extensions future six dataclasses && \
+        rm -rf /var/lib/apt/lists/* Miniconda3-latest-Linux-x86_64.sh
+
+ENV     PATH="/opt/conda/bin:${PATH}"
+
+COPY    --from=builder \
+        /opt/conda/lib/python3.6/site-packages/torch /opt/conda/lib/python3.6/site-packages/torch
+COPY    --from=builder \
+        /usr/local/lib/libinterflop_*.so /usr/local/lib/
+COPY    --from=builder \
+        /usr/lib/x86_64-linux-gnu/libomp.so.5 /usr/lib/x86_64-linux-gnu/
+
+ENV     VFC_BACKENDS="libinterflop_mca.so"
+
+ADD     resources/test_fuzzy_pytorch.sh .
+RUN     test_fuzzy_pytorch.sh && rm test_fuzzy_pytorch.sh
+
+CMD ["bash"]
