@@ -38,7 +38,7 @@ def second_function(N, B):
 
 
 def u(K, dtype=float):
-    K=dtype(K)
+    K = dtype(K)
     if K == 0:
         return dtype(2)
     elif K == 1:
@@ -67,7 +67,7 @@ def run_x_times(function, x, *args):
     for _ in range(x):
         result += [function(*args)]
         sumresult = sum(result)/x
-    return sumresult, np.mean(sumresult), np.std(sumresult)
+    return sumresult, np.mean(result), np.std(result)
 
 
 # for every value of k up to 30:
@@ -76,7 +76,7 @@ def run_x_times(function, x, *args):
 # print k, mean, and std to screen
 for t in [np.float32, np.float64]:
     for _ in range(30):
-        print(run_x_times(u, 10000, _, t))
+        print(run_x_times(u, 100, _, t))
 
 # print(run_x_times(third_function, 100000, 100000))
 # print(X(30))

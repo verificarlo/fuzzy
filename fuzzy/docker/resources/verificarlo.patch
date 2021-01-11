@@ -1,0 +1,20 @@
+--- verificarlo	2020-12-17 11:27:57.074070576 -0500
++++ /home/yohan/local/bin/verificarlo	2020-12-16 18:37:46.866142995 -0500
+@@ -294,11 +294,17 @@
+     parser.add_argument('--version', action='version', version=PACKAGE_STRING)
+     parser.add_argument('--linker', choices=linkers.keys(), default=default_linker,
+                         help="linker to use, {dl} by default".format(dl=default_linker))
++    parser.add_argument('--disable-debug-flag', action="store_true",
++                        help="Remove -g from the flag since it can cause error with flang")
+ 
+     args, other = parser.parse_known_args()
+ 
+     sources, llvm_options = parse_extra_args(other)
+ 
++    if args.disable_debug_flag:
++        if "-g" in llvm_options:
++            llvm_options = llvm_options.replace("-g", "")
++
+     # check input files
+     if (args.E or args.S or args.c) and len(sources) > 1 and args.o:
+         fail('cannot specify -o when generating multiple output files')
