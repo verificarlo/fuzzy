@@ -1,14 +1,11 @@
-FROM gkiar/fuzzy:base
+FROM verificarlo/verificarlo:latest
 
+# Create instrumented shared mathematical library
+RUN git clone https://github.com/big-data-lab-team/MCA-libmath.git /tmp/mca-libmath/ &&\
+    cd /tmp/mca-libmath/src/ &&\
+    make
 
-# Compile openlibmath with verificarlo 
-RUN cd /tmp/ && \
-    git clone https://github.com/JuliaMath/openlibm
-ADD resources/cmtd_assm.files /tmp/openlibm/amd64/Make.files
-RUN cd /tmp/openlibm && \
-    make CC=verificarlo
-
-# Set LS_PRELOAD variable to first load the new lib instead of libm
-ENV LD_PRELOAD=/tmp/openlibm/libopenlibm.so
-ENV VFC_BACKENDS="libinterflop_mca.so"
- 
+# Preloading the instrumented shared library
+ENV LD_PRELOAD=/tmp/mca-libmath/src/libpreload.so
+ENV VFC_BACKENDS="libinterflop_mca.so --mode mca" \
+    VFC_BACKENDS_SILENT_LOAD="True"
