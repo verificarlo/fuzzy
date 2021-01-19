@@ -1,36 +1,33 @@
 FROM verificarlo/verificarlo:v0.4.1
 
 RUN apt-get update -qqq &&\
-    apt-get install -y -qqq make build-essential libssl-dev zlib1g-dev \
+    apt-get install -y --no-install-recommends -qqq \
+    make build-essential libssl-dev zlib1g-dev \
     libbz2-dev libreadline-dev libsqlite3-dev wget \
     curl llvm libncurses5-dev  libncursesw5-dev \
-    xz-utils tk-dev wget fort77 gfortran cmake &&\
+    xz-utils tk-dev wget fort77 gfortran cmake lzma-dev &&\
     rm -rf /var/lib/apt/lists/ &&\
     mkdir -p /opt/build/
 
 # Copy verificarlo's exclusion file for Python 3
 COPY fuzzy/docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
 
-# cmake CMAKE_C_COMPILER=verificarlo-c CMAKE_Fortran_COMPILER=verificarlo-f BUILD_SHARED_LIBS=ON .
+# Copy and apply verificarlo patch for adding VFC_BACKENDS_FROM_FILE option
+# Could be removed when verificarlo-v0.4.2 will be available
+COPY fuzzy/docker/resources/verificarlo.patch /tmp/verificarlo.patch
+COPY fuzzy/docker/resources/vfcwrapper.patch /tmp/vfcwrapper.patch
+RUN patch $(which verificarlo) /tmp/verificarlo.patch
+RUN patch /usr/local/include/vfcwrapper.c /tmp/vfcwrapper.patch
 
 # Setting compilers and linkers to use verificarlo
 ENV CC "verificarlo-c"
-ENV CXX "verificarlo-cpp"
+ENV CXX "verificarlo-c++"
 ENV FC "verificarlo-f"
 
 # Load backend IEEE
-ENV VFC_BACKENDS="libinterflop_ieee.so"
-
-## Build Python 3.6.5 from source and the associated pip
-RUN cd /opt/build/ && \
-    wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
-    tar xvf Python-3.8.5.tgz && \
-    cd Python-3.8.5 && \
-    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" ./configure --enable-optimizations --with-ensurepip=install &&\
-    make -j &&\
-    make install &&\ 
-    wget https://bootstrap.pypa.io/get-pip.py &&\
-    python3 get-pip.py
+RUN touch /tmp/vfc-backends.txt
+ENV VFC_BACKENDS_FROM_FILE=/tmp/vfc-backends.txt
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 # Build BLAS and LAPACK from the following URL's instructions:
 #  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
@@ -51,9 +48,11 @@ RUN cd /opt/build/ &&\
     make &&\
     make install
 
+# Remove temporary files
+RUN rm -rf /opt/build/*
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
-ENV VFC_BACKENDS "libinterflop_mca.so -m rr"
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 ENTRYPOINT [ "/bin/bash"]
