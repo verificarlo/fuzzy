@@ -1,7 +1,7 @@
-FROM gkiar/fuzzy:ubuntu14.04-base
+FROM gkiar/fuzzy:base
 
 RUN apt-get update &&\
-    apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev \
+    apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev libffi-dev \
                        libreadline-dev libsqlite3-dev wget curl libncurses5-dev \
                        libncursesw5-dev xz-utils tk-dev cmake &&\
     rm -rf /var/lib/apt/lists/ &&\

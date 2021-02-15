@@ -1,9 +1,9 @@
-FROM gkiar/fuzzy:ubuntu14.04-base
+FROM gkiar/fuzzy:base
 
 RUN apt-get update &&\
-    apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev \
+    apt-get install -y build-essential libssl-dev zlib1g-dev libbz2-dev libffi-dev \
                        libreadline-dev libsqlite3-dev wget curl libncurses5-dev \
-                       libncursesw5-dev xz-utils tk-dev cmake &&\
+                       libncursesw5-dev xz-utils tk-dev gfortran gcc cmake &&\
     rm -rf /var/lib/apt/lists/ &&\
     mkdir -p /opt/build/
 
@@ -19,7 +19,20 @@ ENV LDSHARED "verificarlo -shared"
 
 # Copy verificarlo's exclusion file for Python3 and config for Numpy
 COPY resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
-COPY resources/numpy-site.cfg /root/.numpy-site.cfg
+
+# Install Lapack (without verificarlo)
+RUN cd /opt/build/ && \
+    wget http://www.netlib.org/lapack/lapack-3.5.0.tgz && \
+    gunzip lapack-3.5.0.tgz && \
+    tar xf lapack-3.5.0.tar && \
+    cd /opt/build/lapack-3.5.0/ && \
+    cp make.inc.example make.inc && \
+    cd /opt/build/lapack-3.5.0/BLAS/SRC/ && \
+    make && \
+    cd /opt/build/lapack-3.5.0/ && \
+    cmake . && \
+    make && \
+    cp lib/* /usr/local/lib/
 
 ## Build Python 3.6.5 from source and the associated pip
 RUN cd /opt/build/ && \
@@ -35,7 +48,7 @@ RUN cd /opt/build/ && \
 
 # Build numpy from sources and link with the local BLAS and LAPACK
 RUN pip3.6 install cython
-RUN pip3.6 install --no-binary :all: numpy
+RUN pip3.6 install numpy
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo"

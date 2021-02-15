@@ -1,10 +1,11 @@
+[![Fuzzy Marimo](https://github.com/gkiar/fuzzy/raw/master/img/fuzzy.png)](./img/fuzzy.png)
+
 # Fuzzy 
 
 [![Build Status](https://travis-ci.org/gkiar/fuzzy.svg?branch=master)](https://travis-ci.org/gkiar/fuzzy)
 [![Docker Pulls](https://img.shields.io/docker/pulls/gkiar/fuzzy)](https://hub.docker.com/r/gkiar/fuzzy)
 [![GPL Licensed](https://img.shields.io/badge/license-GPL-blue)](./LICENSE)
 
-![Fuzzy Marimo](./img/fuzzy.png)
 
 *A fuzzy ecosystem for evaluating the stability of your computational tools.*
 
