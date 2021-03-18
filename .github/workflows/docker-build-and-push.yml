@@ -30,7 +30,8 @@ jobs:
           echo $CHANGED
           echo "::set-output name=CHANGED::$CHANGED"
       - name: Print changed files
-        run : echo " ${{ steps.changes.outputs.CHANGED }}"
+        run: git diff-tree --no-commit-id --name-only -r ${{ github.sha }}
+        #run : echo " ${{ steps.changes.outputs.CHANGED }}"
       - name: Cancel upstream jobs
         if: contains(steps.changes.outputs.CHANGED, 'docker')
         uses: n1hility/cancel-previous-runs@v2
