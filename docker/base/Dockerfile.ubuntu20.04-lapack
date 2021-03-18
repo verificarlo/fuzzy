@@ -56,4 +56,5 @@ RUN rm -rf /opt/build/*
 ENV CC "verificarlo-c"
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
+# Set bash shell as entrypoint
 ENTRYPOINT [ "/bin/bash"]
