@@ -28,7 +28,7 @@ jobs:
         with:
           files: ./docker/
       - name: Print changed files
-        run : echo ${{ steps.changed_files.outputs.changed_files } ${{ steps.changed_files.outputs.files_changed }
+        run : echo " ${{ steps.changed_files.outputs.changed_files }} ${{ steps.changed_files.outputs.files_changed }}"
       - name: Cancel upstream jobs
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         uses: n1hility/cancel-previous-runs@v2
