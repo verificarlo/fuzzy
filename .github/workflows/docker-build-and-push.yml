@@ -53,6 +53,11 @@ jobs:
         name: Checkout repository
         uses: actions/checkout@v2
       -
+        name: Cancel upstream jobs
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+      -
         name: Pull previous build
         run: docker pull verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
         continue-on-error: true
