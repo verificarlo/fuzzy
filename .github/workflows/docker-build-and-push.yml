@@ -49,120 +49,160 @@ jobs:
   python:
     needs: lapack
     runs-on: ubuntu-20.04
+    env:
+      DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
+      DOCKER_FILE: ./fuzzy/docker/level1/Dockerfile.ubuntu20.04-python
     steps:
-      -
-        name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      -
-        name: Login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v1 
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      -
-        name: Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v2
-      -
-        name: Pull previous build
-        run: docker pull verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
-        continue-on-error: true
-      -
-        name: Build fuzzy python docker and push
+      - name: Verify that Dockerfiles have changed
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: ./fuzzy/docker/
+      - name: Cancel upstream jobs
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+      - name: Build and push
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: ./fuzzy/docker/level1/Dockerfile.ubuntu20.04-python
+          file: env.DOCKER_FILE
           push: true
-          tags: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
-          cache-from: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
-      -
-        name: Image digest
+          tags: env.DOCKER_IMAGE
+          cache-from: env.DOCKER_IMAGE
+      - name: Image digest
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
-#  python_numpy:
-#    needs: python
-#    runs-on: ubuntu-20.04
-#    steps:
-#      -
-#        name: Set up Docker Buildx
-#        uses: docker/setup-buildx-action@v1
-#      -
-#        name: Login to DockerHub
-#        uses: docker/login-action@v1 
-#        with:
-#          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-#          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-#      -
-#        name: Check Out Repo 
-#        uses: actions/checkout@v2
-#      -
-#        name: Build fuzzy Numpy docker and push
-#        id: docker_build
-#        uses: docker/build-push-action@v2
-#        with:
-#          context: ./
-#          file: ./fuzzy/docker/level2/Dockerfile.ubuntu20.04-python-numpy
-#          push: true
-#          tags: yohanchatelain/fuzzy:python-numpy-v0.4.1
-#      -
-#        name: Image digest
-#        run: echo ${{ steps.docker_build.outputs.digest }}
-#
-#  python_numpy_scipy:
-#      needs: python_numpy
-#      runs-on: ubuntu-20.04
-#      steps:
-#        -
-#          name: Set up Docker Buildx
-#          uses: docker/setup-buildx-action@v1
-#        -
-#          name: Login to DockerHub
-#          uses: docker/login-action@v1 
-#          with:
-#            username: ${{ secrets.DOCKER_HUB_USERNAME }}
-#            password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-#        -
-#          name: Check Out Repo 
-#          uses: actions/checkout@v2
-#        -
-#          name: Build fuzzy Scipy docker and push
-#          id: docker_build
-#          uses: docker/build-push-action@v2
-#          with:
-#            context: ./
-#            file: ./fuzzy/docker/level3/Dockerfile.ubuntu20.04-python-numpy-scipy
-#            push: true
-#            tags: yohanchatelain/fuzzy:python-numpy-scipy-v0.4.1
-#        -
-#          name: Image digest
-#          run: echo ${{ steps.docker_build.outputs.digest }}
-#
-#  python_numpy_scipy_sklearn:
-#      needs: python_numpy_scipy
-#      runs-on: ubuntu-20.04
-#      steps:
-#        -
-#          name: Set up Docker Buildx
-#          uses: docker/setup-buildx-action@v1
-#        -
-#          name: Login to DockerHub
-#          uses: docker/login-action@v1 
-#          with:
-#            username: ${{ secrets.DOCKER_HUB_USERNAME }}
-#            password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-#        -
-#          name: Check Out Repo 
-#          uses: actions/checkout@v2
-#        -
-#          name: Build fuzzy Scikit-learn docker and push
-#          id: docker_build
-#          uses: docker/build-push-action@v2
-#          with:
-#            context: ./
-#            file: ./fuzzy/docker/level4/Dockerfile.ubuntu20.04-python-numpy-scipy-sklearn
-#            push: true
-#            tags: yohanchatelain/fuzzy:python-numpy-scipy-sklearn-v0.4.1
-#        -
-#          name: Image digest
-#          run: echo ${{ steps.docker_build.outputs.digest }}
+  numpy:
+    needs: python
+    runs-on: ubuntu-20.04
+    env:
+      DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy
+      DOCKER_FILE: ./fuzzy/docker/level2/Dockerfile.ubuntu20.04-python-numpy
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Verify that Dockerfiles have changed
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: ./fuzzy/docker/
+      - name: Cancel upstream jobs
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+      - name: Build and push
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: env.DOCKER_FILE
+          push: true
+          tags: env.DOCKER_IMAGE
+          cache-from: env.DOCKER_IMAGE
+      - name: Image digest
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+  scipy:
+    needs: numpy
+    runs-on: ubuntu-20.04
+    env:
+      DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy
+      DOCKER_FILE: ./fuzzy/docker/level3/Dockerfile.ubuntu20.04-python-numpy-scipy
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Verify that Dockerfiles have changed
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: ./fuzzy/docker/
+      - name: Cancel upstream jobs
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+      - name: Build and push
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: env.DOCKER_FILE
+          push: true
+          tags: env.DOCKER_IMAGE
+          cache-from: env.DOCKER_IMAGE
+      - name: Image digest
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+  sklearn:
+    needs: scipy
+    runs-on: ubuntu-20.04
+    env:
+      DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
+      DOCKER_FILE: ./fuzzy/docker/level4/Dockerfile.ubuntu20.04-python-numpy-scipy-sklearn
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Verify that Dockerfiles have changed
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: ./fuzzy/docker/
+      - name: Cancel upstream jobs
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+      - name: Build and push
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: env.DOCKER_FILE
+          push: true
+          tags: env.DOCKER_IMAGE
+          cache-from: env.DOCKER_IMAGE
+      - name: Image digest
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
