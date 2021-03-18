@@ -1,5 +1,6 @@
 FROM verificarlo/verificarlo:v0.4.1
 
+# Setup build dependencies
 RUN apt-get update -qqq &&\
     apt-get install -y --no-install-recommends -qqq \
     make build-essential libssl-dev zlib1g-dev \
