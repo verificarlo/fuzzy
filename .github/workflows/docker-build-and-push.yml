@@ -9,6 +9,9 @@ on:
 jobs:
   lapack:
     runs-on: ubuntu-20.04
+    env:
+      DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack
+      DOCKER_FILE: ./fuzzy/docker/base/Dockerfile.ubuntu20.04-lapack
     steps:
       -
         name: Set up Docker Buildx
@@ -23,20 +26,27 @@ jobs:
         name: Checkout repository
         uses: actions/checkout@v2
       -
-        name: Cancel upstream jobs
+        name: Verify that Dockerfiles have changed
+        uses: tj-actions/verify-changed-files@v5.5
+        id: changed_files
+        with:
+          files: ./fuzzy/docker/
+      -
+        name: Cancel upstream jobs (given: Dockerfile changes)
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
         uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
       -
-        name: Build fuzzy lapack docker and push
+        name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: ./fuzzy/docker/base/Dockerfile.ubuntu20.04-lapack
+          file: ${DOCKER_FILE} 
           push: true
-          tags: verificarlo/fuzzy:v0.4.1-lapack
-          cache-from: verificarlo/fuzzy:v0.4.1-lapack
+          tags: ${DOCKER_IMAGE}
+          cache-from: ${DOCKER_IMAGE}
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
