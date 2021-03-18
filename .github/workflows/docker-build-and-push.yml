@@ -22,20 +22,18 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Verify that Dockerfiles have changed
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: docker
+      - name: Check for Dockerfile changes
+        id: changes
+        run: echo "::set-output name=changed_files::$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})"
       - name: Print changed files
-        run : echo " ${{ steps.changed_files.outputs.changed_files }} ${{ steps.changed_files.outputs.files_changed }}"
+        run : echo " ${{ steps.changes.outputs.changed_files }}"
       - name: Cancel upstream jobs
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changed_files.outputs.changed_files, 'docker')
         uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Build and push
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changed_files.outputs.changed_files, 'docker')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
