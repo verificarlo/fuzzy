@@ -60,7 +60,7 @@ jobs:
         run: docker pull verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
         continue-on-error: true
       -
-        name: Build fuzzy lapack docker and push
+        name: Build fuzzy python docker and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
