@@ -15,5 +15,4 @@ RUN cd /opt/build/ &&\
 
 ENV VFC_BACKENDS='libinterflop_mca.so'
 ENV VFC_BACKENDS_LOGGER="True"
-RUN unset VFC_BACKENDS_SILENT_LOAD
 

@@ -25,8 +25,8 @@ ENV CXX "verificarlo-c++"
 ENV FC "verificarlo-f"
 
 # Load backend IEEE
-RUN touch /tmp/vfc-backends.txt
-ENV VFC_BACKENDS_FROM_FILE=/tmp/vfc-backends.txt
+RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
+ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 # Build BLAS and LAPACK from the following URL's instructions:
