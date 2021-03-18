@@ -25,6 +25,7 @@ jobs:
       - name: Check for Dockerfile changes
         id: changes
         run: |
+          git diff-tree --no-commit-id --name-only -r ${{ github.sha }} &&
           CHANGED=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }}) &&
           echo "::set-output name=CHANGED::$CHANGED"
       - name: Print changed files
