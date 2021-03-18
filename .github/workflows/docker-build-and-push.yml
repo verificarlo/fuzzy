@@ -43,10 +43,10 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: ${DOCKER_FILE} 
+          file: env.DOCKER_FILE
           push: true
-          tags: ${DOCKER_IMAGE}
-          cache-from: ${DOCKER_IMAGE}
+          tags: env.DOCKER_IMAGE
+          cache-from: env.DOCKER_IMAGE
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
