@@ -32,7 +32,7 @@ jobs:
         with:
           files: ./fuzzy/docker/
       -
-        name: Cancel upstream jobs (given: Dockerfile changes)
+        name: Cancel upstream jobs
         if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
         uses: n1hility/cancel-previous-runs@v2
         with:
