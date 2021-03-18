@@ -67,11 +67,6 @@ jobs:
         id: changed_files
         with:
           files: ./docker/
-      - name: Cancel upstream jobs
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
-        uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
@@ -107,11 +102,6 @@ jobs:
         id: changed_files
         with:
           files: ./docker/
-      - name: Cancel upstream jobs
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
-        uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
@@ -147,11 +137,6 @@ jobs:
         id: changed_files
         with:
           files: ./docker/
-      - name: Cancel upstream jobs
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
-        uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
@@ -187,11 +172,6 @@ jobs:
         id: changed_files
         with:
           files: ./docker/
-      - name: Cancel upstream jobs
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
-        uses: n1hility/cancel-previous-runs@v2
-        with:
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
