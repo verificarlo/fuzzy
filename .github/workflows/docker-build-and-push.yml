@@ -25,12 +25,11 @@ jobs:
       - name: Check for Dockerfile changes
         id: changes
         run: |
-          CHANGED=$(git log -1 --pretty="" --name-only) &&
+          CHANGED=$(git log -1 --pretty="" --name-only -r ${{github.sha}}) &&
           echo $CHANGED &&
           echo "::set-output name=CHANGED::$CHANGED"
       - name: Print changed files
-        run: git show --format='' --name-only &&
-             echo " ${{ steps.changes.outputs.CHANGED }}"
+        run: echo ${{ steps.changes.outputs.CHANGED }}
       - name: Cancel upstream jobs
         if: contains(steps.changes.outputs.CHANGED, 'docker')
         uses: n1hility/cancel-previous-runs@v2
