@@ -25,9 +25,9 @@ jobs:
       - name: Check for Dockerfile changes
         id: changes
         run: |
-          CHANGED=$(git log -1 --pretty="" --name-only -r ${{github.sha}}) &&
+          CHANGED=$(git show --pretty="" --name-only -r ${{github.sha}}) &&
           echo $CHANGED &&
-          echo "::set-output name=CHANGED::$CHANGED"
+          echo "::set-output name=CHANGED::'$CHANGED'"
       - name: Print changed files
         run: echo ${{ steps.changes.outputs.CHANGED }}
       - name: Cancel upstream jobs
