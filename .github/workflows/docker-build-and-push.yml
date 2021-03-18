@@ -25,7 +25,7 @@ jobs:
       - name: Check for Dockerfile changes
         id: changes
         run: |
-          CHANGED=$(git show --format='' --name-only)
+          CHANGED=$(git log -1 --pretty="" --name-only) &&
           echo $CHANGED &&
           echo "::set-output name=CHANGED::$CHANGED"
       - name: Print changed files
