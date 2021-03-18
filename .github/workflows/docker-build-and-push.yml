@@ -13,32 +13,27 @@ jobs:
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack
       DOCKER_FILE: ./fuzzy/docker/base/Dockerfile.ubuntu20.04-lapack
     steps:
-      -
-        name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      -
-        name: Login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v1 
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      -
-        name: Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v2
-      -
-        name: Verify that Dockerfiles have changed
+      - name: Verify that Dockerfiles have changed
         uses: tj-actions/verify-changed-files@v5.5
         id: changed_files
         with:
           files: ./fuzzy/docker/
-      -
-        name: Cancel upstream jobs
+      - name: Cancel upstream jobs
         if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
         uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
-      -
-        name: Build and push
+      - name: Build and push
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -47,8 +42,8 @@ jobs:
           push: true
           tags: env.DOCKER_IMAGE
           cache-from: env.DOCKER_IMAGE
-      -
-        name: Image digest
+      - name: Image digest
+        if: contains(steps.changed_files.outputs.changed_files, './fuzzy/docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   python:
