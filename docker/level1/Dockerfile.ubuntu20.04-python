@@ -23,4 +23,5 @@ RUN rm -rf /opt/build/*
 # Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
+# Set entrypoint
 ENTRYPOINT [ "/bin/bash"]

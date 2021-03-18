@@ -26,7 +26,7 @@ jobs:
         uses: tj-actions/verify-changed-files@v5.5
         id: changed_files
         with:
-          files: ./docker/
+          files: docker
       - name: Print changed files
         run : echo " ${{ steps.changed_files.outputs.changed_files }} ${{ steps.changed_files.outputs.files_changed }}"
       - name: Cancel upstream jobs
@@ -68,7 +68,7 @@ jobs:
         uses: tj-actions/verify-changed-files@v5.5
         id: changed_files
         with:
-          files: ./docker/
+          files: docker
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
@@ -103,7 +103,7 @@ jobs:
         uses: tj-actions/verify-changed-files@v5.5
         id: changed_files
         with:
-          files: ./docker/
+          files: docker
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
@@ -138,7 +138,7 @@ jobs:
         uses: tj-actions/verify-changed-files@v5.5
         id: changed_files
         with:
-          files: ./docker/
+          files: docker
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
@@ -173,7 +173,7 @@ jobs:
         uses: tj-actions/verify-changed-files@v5.5
         id: changed_files
         with:
-          files: ./docker/
+          files: docker
       - name: Build and push
         if: contains(steps.changed_files.outputs.changed_files, './docker')
         id: docker_build
