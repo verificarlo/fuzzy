@@ -27,6 +27,7 @@ jobs:
         run: |
           git diff-tree --no-commit-id --name-only -r ${{ github.sha }} &&
           CHANGED=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }}) &&
+          echo $CHANGED
           echo "::set-output name=CHANGED::$CHANGED"
       - name: Print changed files
         run : echo " ${{ steps.changes.outputs.CHANGED }}"
