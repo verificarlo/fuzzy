@@ -11,12 +11,12 @@ RUN apt-get update -qqq &&\
     mkdir -p /opt/build/
 
 # Copy verificarlo's exclusion file for Python 3
-COPY fuzzy/docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
+COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
 
 # Copy and apply verificarlo patch for adding VFC_BACKENDS_FROM_FILE option
 # Could be removed when verificarlo-v0.4.2 will be available
-COPY fuzzy/docker/resources/verificarlo.patch /tmp/verificarlo.patch
-COPY fuzzy/docker/resources/vfcwrapper.patch /tmp/vfcwrapper.patch
+COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
+COPY docker/resources/vfcwrapper.patch /tmp/vfcwrapper.patch
 RUN patch $(which verificarlo) /tmp/verificarlo.patch
 RUN patch /usr/local/include/vfcwrapper.c /tmp/vfcwrapper.patch
 
