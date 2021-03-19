@@ -1,0 +1,18 @@
+FROM verificarlo/fuzzy:v0.4.1-lapack-python-numpy-scipy
+
+ENV VFC_BACKENDS='libinterflop_ieee.so'
+ENV VFC_BACKENDS_SILENT_LOAD="True"
+ENV VFC_BACKENDS_LOGGER="False"
+ENV FC="verificarlo-f --disable-debug-flag"
+
+RUN cd /opt/build/ &&\
+    git clone https://github.com/yeatmanlab/pyAFQ.git &&\
+    cd /opt/build/pyAFQ &&\
+    git checkout 0.6 &&\
+    sed -i 's/numpy==1.18.5/numpy>=1.18.5,<1.20/g' setup.cfg &&\
+    sed -i 's/cvxpy==1.1.5/cvxpy>=1.1.10/g' setup.cfg &&\
+    pip3 install .
+
+ENV VFC_BACKENDS='libinterflop_mca.so'
+ENV VFC_BACKENDS_LOGGER="True"
+

@@ -1,0 +1,32 @@
+FROM verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
+
+# Use IEEE mode for compiling with verificarlo
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+
+# Copy verificarlo's exclusion file for Python 3
+COPY docker/resources/numpy-verificarlo.patch /tmp/numpy-verificarlo.patch
+COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
+
+RUN  git config --global user.email "fake@mail.com" &&\
+    git config --global user.name "Anonymous Patcher" 
+
+# Build numpy from sources and link with the local BLAS and LAPACK
+RUN pip3.8 install cython
+RUN cd /opt/build &&\
+    git clone -b v1.19.1 --depth=1 https://github.com/numpy/numpy.git &&\
+    cd /opt/build/numpy &&\
+    git checkout v1.19.1 &&\
+    git am /tmp/numpy-verificarlo.patch &&\
+    CFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    NPY_BLAS_ORDER=BLAS NPY_LAPACK_ORDER=LAPACK \
+    python3 setup.py config --compiler=verificarlo --fcompiler=verificarlof build_clib \
+    --compiler=verificarlo --fcompiler=verificarlof build_ext \
+    --compiler=verificarlo --fcompiler=verificarlof build -j 4 install
+
+# Remove temporary files
+RUN rm -rf /opt/build/*
+
+# Restore default MCA mode
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+ENTRYPOINT [ "/bin/bash"]

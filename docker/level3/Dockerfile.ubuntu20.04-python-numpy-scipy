@@ -1,0 +1,25 @@
+FROM verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy
+
+
+# Load backend IEEE
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+
+RUN pip3 install joblib
+RUN cp /usr/local/bin/verificarlo-f /usr/bin/gfortran
+RUN cd /opt/build/ &&\
+  git clone https://github.com/scipy/scipy.git &&\
+  cd /opt/build/scipy &&\
+  git checkout v1.5.4 &&\
+  CFLAGS="--disable-debug-flag" FFLAGS="--disable-debug-flag" NPY_NUM_BUILD_JOBS=4 \
+  python3 setup.py config --compiler=verificarlo --fcompiler=verificarlof build_clib \
+  --compiler=verificarlo --fcompiler=verificarlof build_ext \
+  --compiler=verificarlo --fcompiler=verificarlof build -j 4 install
+
+# Remove temporary files
+RUN rm -rf /opt/build/*
+
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo-c"
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+ENTRYPOINT [ "/bin/bash"]
