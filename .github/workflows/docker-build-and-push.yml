@@ -62,13 +62,11 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Verify that Dockerfiles have changed
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: docker
+      - name: Check for Dockerfile changes
+        uses: jitterbit/get-changed-files@v1
+        id: changes
       - name: Build and push
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -78,7 +76,7 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   numpy:
@@ -97,13 +95,11 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Verify that Dockerfiles have changed
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: docker
+      - name: Check for Dockerfile changes
+        uses: jitterbit/get-changed-files@v1
+        id: changes
       - name: Build and push
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -113,7 +109,7 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   scipy:
@@ -132,13 +128,11 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Verify that Dockerfiles have changed
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: docker
+      - name: Check for Dockerfile changes
+        uses: jitterbit/get-changed-files@v1
+        id: changes
       - name: Build and push
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -148,7 +142,7 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   sklearn:
@@ -167,13 +161,11 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Verify that Dockerfiles have changed
-        uses: tj-actions/verify-changed-files@v5.5
-        id: changed_files
-        with:
-          files: docker
+      - name: Check for Dockerfile changes
+        uses: jitterbit/get-changed-files@v1
+        id: changes
       - name: Build and push
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -183,6 +175,6 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changed_files.outputs.changed_files, './docker')
+        if: contains(steps.changes.outputs.all, 'docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
