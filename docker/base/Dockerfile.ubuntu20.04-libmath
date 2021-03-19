@@ -11,11 +11,11 @@ ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 # Create instrumented shared mathematical library
-RUN git clone https://github.com/big-data-lab-team/MCA-libmath.git /tmp/mca-libmath/ &&\
-    cd /tmp/mca-libmath/src/ &&\
+RUN git clone https://github.com/big-data-lab-team/MCA-libmath.git /opt/mca-libmath/ &&\
+    cd /opt/mca-libmath/ &&\
     make
 
 # Preloading the instrumented shared library
-ENV LD_PRELOAD=/tmp/mca-libmath/src/libpreload.so
+ENV LD_PRELOAD=/opt/mca-libmath/src/libpreload.so
 ENV VFC_BACKENDS="libinterflop_mca.so --mode mca" \
     VFC_BACKENDS_SILENT_LOAD="True"
