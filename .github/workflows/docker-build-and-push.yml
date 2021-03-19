@@ -1,4 +1,4 @@
-name: Docker build Python and push
+name: Docker build and push
 
 on:
   pull_request:
@@ -28,12 +28,12 @@ jobs:
       - name: Print changed files
         run: echo ${{ steps.changes.outputs.all }}
       - name: Cancel upstream jobs
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
       - name: Build and push
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -43,7 +43,7 @@ jobs:
           push: true
           cache-from: ${{ env.DOCKER_IMAGE }}
       - name: Image digest
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   python:
@@ -66,7 +66,7 @@ jobs:
         uses: jitterbit/get-changed-files@v1
         id: changes
       - name: Build and push
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -76,7 +76,7 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   numpy:
@@ -99,7 +99,7 @@ jobs:
         uses: jitterbit/get-changed-files@v1
         id: changes
       - name: Build and push
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -109,7 +109,7 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   scipy:
@@ -132,7 +132,7 @@ jobs:
         uses: jitterbit/get-changed-files@v1
         id: changes
       - name: Build and push
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -142,7 +142,7 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   sklearn:
@@ -165,7 +165,7 @@ jobs:
         uses: jitterbit/get-changed-files@v1
         id: changes
       - name: Build and push
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -175,6 +175,6 @@ jobs:
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
-        if: contains(steps.changes.outputs.all, 'docker')
+        if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
 
