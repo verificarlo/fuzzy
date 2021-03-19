@@ -1,4 +1,4 @@
-FROM yohanchatelain/fuzzy:python-numpy-scipy-v0.4.1
+FROM verificarlo/fuzzy:v0.4.1-lapack-python-numpy-scipy
 
 ENV VFC_BACKENDS='libinterflop_ieee.so'
 ENV VFC_BACKENDS_SILENT_LOAD="True"

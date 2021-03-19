@@ -1,4 +1,14 @@
-FROM verificarlo/verificarlo:latest
+FROM verificarlo/verificarlo:v0.4.1
+
+# Setting compilers and linkers to use verificarlo
+ENV CC "verificarlo-c"
+ENV CXX "verificarlo-c++"
+ENV FC "verificarlo-f"
+
+# Load backend IEEE
+RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
+ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 # Create instrumented shared mathematical library
 RUN git clone https://github.com/big-data-lab-team/MCA-libmath.git /tmp/mca-libmath/ &&\

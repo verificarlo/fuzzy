@@ -1,4 +1,6 @@
-FROM ubuntu:20.04
+FROM verificarlo/fuzzy:v0.4.1-libmath
+
+ENV VFC_BACKENDS="libinterflop_ieee.so"
 
 # Install FSL tools
 ENV DEBIAN_FRONTEND=noninteractive
@@ -76,36 +78,3 @@ ENV PERL5LIB=$MNI_DIR/share/perl5 \
     MNI_DATAPATH=$MNI_DIR/data
 ENV PATH=$FREESURFER_HOME/bin:$FREESURFER_HOME/tktools:$MINC_BIN_DIR:$PATH
 
-# Install Verificarlo
-RUN apt install -y \
-    libmpfr-dev \
-    clang-7 \
-    flang-7 \
-    llvm-7-dev \
-    gcc-7 \
-    autoconf \
-    automake \
-    build-essential \
-    python3 \
-    python3-numpy \
-    python3-pip \
-    libtool \
-    git
-RUN strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
-
-RUN pip3 install bigfloat
-RUN git clone https://github.com/verificarlo/verificarlo.git /tmp/verificarlo/ &&\
-    cd /tmp/verificarlo/ &&\
-    ./autogen.sh &&\
-    ./configure --with-flang --with-llvm=/usr/lib/llvm-7/bin/ CC=gcc-7 CXX=g++-9 &&\
-    make &&\
-    make install
-
-# Create instrumented libmath
-RUN git clone https://github.com/big-data-lab-team/MCA-libmath.git /tmp/mca-libmath/ &&\
-    cd /tmp/mca-libmath/src/ &&\
-    make
-
-ENV VFC_BACKENDS="libinterflop_mca.so --mode mca" \
-    VFC_BACKENDS_SILENT_LOAD="True"
-ENV LD_PRELOAD=/tmp/mca-libmath/src/libpreload.so

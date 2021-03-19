@@ -1,4 +1,4 @@
-FROM gkiar/fuzzy:libmath
+FROM verificarlo/fuzzy:v0.4.1-libmath
 
 RUN wget ftp.us.debian.org/debian/pool/main/libx/libxp/libxp6_1.0.2-2_amd64.deb &&\
     dpkg -i libxp6_1.0.2-2_amd64.deb && rm libxp6_1.0.2-2_amd64.deb

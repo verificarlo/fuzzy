@@ -1,4 +1,4 @@
-FROM gkiar/fuzzy:libmath
+FROM verificarlo/fuzzy:v0.4.1-libmath
 
 RUN apt-get update && apt install -y wget
 
