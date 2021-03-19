@@ -39,8 +39,8 @@ jobs:
         with:
           context: ./
           file: ${{ env.DOCKER_FILE }}
-          push: true
           tags: ${{ env.DOCKER_IMAGE }} 
+          push: true
           cache-from: ${{ env.DOCKER_IMAGE }}
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'docker')
@@ -71,8 +71,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: env.DOCKER_FILE
-          tags: env.DOCKER_IMAGE
+          file: ${{ env.DOCKER_FILE }}
+          tags: ${{ env.DOCKER_IMAGE }} 
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
@@ -104,8 +104,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: env.DOCKER_FILE
-          tags: env.DOCKER_IMAGE
+          file: ${{ env.DOCKER_FILE }}
+          tags: ${{ env.DOCKER_IMAGE }} 
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
@@ -137,8 +137,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: env.DOCKER_FILE
-          tags: env.DOCKER_IMAGE
+          file: ${{ env.DOCKER_FILE }}
+          tags: ${{ env.DOCKER_IMAGE }} 
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
@@ -170,8 +170,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: env.DOCKER_FILE
-          tags: env.DOCKER_IMAGE
+          file: ${{ env.DOCKER_FILE }}
+          tags: ${{ env.DOCKER_IMAGE }} 
           push: true
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
