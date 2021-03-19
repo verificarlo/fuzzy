@@ -1,4 +1,5 @@
-FROM verificarlo/fuzzy:python-numpy-v0.4.1
+FROM verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy
+
 
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
