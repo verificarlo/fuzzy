@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Set variables
         run: |
-          if ([ -z "${{github.event_name}}" ] && [ "${{github.event.repository.ref}}" == *"master"* ])
+          if ([ "${{github.event_name}}" == "push" ] && [ "${{github.ref}}" == "refs/heads/master" ])
           then
               echo is a push to master: push
               echo "PUSH=true" >> "$GITHUB_ENV"
