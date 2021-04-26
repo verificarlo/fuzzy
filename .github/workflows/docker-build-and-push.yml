@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Set variables
         run: |
-          if ([ -z "${{github.event.action}}" ] && [ "${{github.event.repository.ref}}" == *"master"* ])
+          if ([ -z "${{github.event_name}}" ] && [ "${{github.event.repository.ref}}" == *"master"* ])
           then
               echo is a push to master: push
               echo "PUSH=true" >> "$GITHUB_ENV"
@@ -24,7 +24,7 @@ jobs:
               echo is a PR or non-master branch: do not push
               echo "PUSH=false" >> "$GITHUB_ENV"
           fi
-          echo ${{github.event.action}}, ${{github.event.repository.ref}}, ${{github.event.repository.full_name}}
+          echo ${{github.event_name}}, ${{github.repository.ref}}, ${{github.event.repository.full_name}}
       - name: echo var
         run: echo ${{env.PUSH}}
       - name: Set up Docker Buildx
