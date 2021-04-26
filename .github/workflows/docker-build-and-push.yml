@@ -45,7 +45,7 @@ jobs:
         uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
-       - name: Cache Docker layers
+      - name: Cache Docker layers
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
