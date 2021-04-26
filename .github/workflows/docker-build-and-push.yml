@@ -41,7 +41,7 @@ jobs:
       - name: Print changed files
         run: echo ${{ steps.changes.outputs.all }}
       - name: Cancel upstream jobs
-        if: contains(steps.changes.outputs.all, 'Dockerfile')
+        if: contains(steps.changes.outputs.all, 'docker')
         uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
