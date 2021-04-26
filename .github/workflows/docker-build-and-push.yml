@@ -57,7 +57,7 @@ jobs:
           push: ${{ env.PUSH }}
           outputs: type=docker,dest=/tmp/${{ env.DOCKER_IMAGE }}.tar
       - name: Upload artifacts
-        uses: actions/upload-artifacts@v2
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ env.DOCKER_IMAGE}}.tar
           path: /tmp/${{ env.DOCKER_IMAGE}}.tar
