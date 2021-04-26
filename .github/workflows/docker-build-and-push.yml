@@ -1,10 +1,10 @@
 name: Docker build and push
 
 on:
-  pull_request_target:
-    branches: [ master, dev, 'releases/**' ]
   push:
     branches: [ master, dev, 'releases/**' ]
+  pull_request_target:
+    types: [opened, edited, synchronize]
 
 jobs:
   lapack:
@@ -12,7 +12,12 @@ jobs:
     env:
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack
       DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-lapack
+      PUSH: false
     steps:
+      - name: Set variables
+        run: |
+          echo ${{github.event.action}} &&
+          echo ${{github.event.repository}} &&
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
@@ -40,7 +45,7 @@ jobs:
           context: ./
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
-          push: true
+          push: ${{ env.PUSH }}
           cache-from: ${{ env.DOCKER_IMAGE }}
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
@@ -51,6 +56,7 @@ jobs:
     env:
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-libmath
       DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-libmath
+      PUSH: false
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -79,7 +85,7 @@ jobs:
           context: ./
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
-          push: true
+          push: ${{ env.PUSH }}
           cache-from: ${{ env.DOCKER_IMAGE }}
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
@@ -91,6 +97,7 @@ jobs:
     env:
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
       DOCKER_FILE: ./docker/level1/Dockerfile.ubuntu20.04-python
+      PUSH: false
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -112,7 +119,7 @@ jobs:
           context: ./
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
-          push: true
+          push: ${{ env.PUSH }}
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
@@ -124,6 +131,7 @@ jobs:
     env:
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy
       DOCKER_FILE: ./docker/level2/Dockerfile.ubuntu20.04-python-numpy
+      PUSH: false
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -145,7 +153,7 @@ jobs:
           context: ./
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
-          push: true
+          push: ${{ env.PUSH }}
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
@@ -157,6 +165,7 @@ jobs:
     env:
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy
       DOCKER_FILE: ./docker/level3/Dockerfile.ubuntu20.04-python-numpy-scipy
+      PUSH: false
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -178,7 +187,7 @@ jobs:
           context: ./
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
-          push: true
+          push: ${{ env.PUSH }}
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
@@ -190,6 +199,7 @@ jobs:
     env:
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
       DOCKER_FILE: ./docker/level4/Dockerfile.ubuntu20.04-python-numpy-scipy-sklearn
+      PUSH: false
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -211,7 +221,7 @@ jobs:
           context: ./
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
-          push: true
+          push: ${{ env.PUSH }}
           cache-from: env.DOCKER_IMAGE
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
