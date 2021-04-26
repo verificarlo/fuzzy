@@ -50,8 +50,8 @@ jobs:
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+#           restore-keys: |
+#            ${{ runner.os }}-buildx-
       - name: Build and push
         if: contains(steps.changes.outputs.all, 'Dockerfile')
         id: docker_build
@@ -61,7 +61,7 @@ jobs:
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
           push: ${{ env.PUSH }}
-          cache-from: type=local,src=/tmp/.buildx-cache
+#          cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
       # This ugly bit is necessary if you don't want your cache to grow forever
       # till it hits GitHub's limit of 5GB.
