@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       DOCKER_FROM: ""
+      DOCKER_TO: fuzzy:v0.4.1-lapack-un
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-un
       DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-lapack
       PUSH: false
@@ -55,12 +56,12 @@ jobs:
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
           push: ${{ env.PUSH }}
-          outputs: type=docker,dest=/tmp/${{ env.DOCKER_IMAGE }}.tar
+          outputs: type=docker,dest=/tmp/${{ env.DOCKER_TO }}.tar
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.DOCKER_IMAGE}}.tar
-          path: /tmp/${{ env.DOCKER_IMAGE}}.tar
+          name: ${{ env.DOCKER_TO}}.tar
+          path: /tmp/${{ env.DOCKER_TO}}.tar
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -69,7 +70,8 @@ jobs:
     needs: lapack
     runs-on: ubuntu-20.04
     env:
-      DOCKER_FROM: verificarlo/fuzzy:v0.4.1-lapack-un
+      DOCKER_FROM: fuzzy:v0.4.1-lapack-un
+      DOCKER_TO: fuzzy:v0.4.1-lapack-python3.8.5
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
       DOCKER_FILE: ./docker/level1/Dockerfile.ubuntu20.04-python
       PUSH: false
