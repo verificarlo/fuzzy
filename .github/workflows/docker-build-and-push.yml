@@ -1,10 +1,10 @@
 name: Docker build and push
 
 on:
-  pull_request:
-    branches: [ master, 'releases/**' ]
+  pull_request_target:
+    branches: [ master, dev, 'releases/**' ]
   push:
-    branches: [ master, 'releases/**' ]
+    branches: [ master, dev, 'releases/**' ]
 
 jobs:
   lapack:
