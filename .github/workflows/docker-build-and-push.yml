@@ -16,8 +16,15 @@ jobs:
     steps:
       - name: Set variables
         run: |
-          echo ${{github.event.action}} &&
-          echo ${{github.event.repository.owner}}
+          if ([ -z "${{ github.event.action }}" ] && [ "${{ github.event.repository.ref}}" == *"master"* ])
+          then
+              echo not a PR, is master: push
+              echo "PUSH=true" >> "$GITHUB_ENV"
+          else
+              echo not a PR, is master: do not push
+              echo "PUSH=false" >> "$GITHUB_ENV"
+          fi
+          echo ${{github.event.action}}, ${{github.event.repository.ref}}, ${{github.event.repository.full_name}}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
