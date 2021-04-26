@@ -10,7 +10,8 @@ jobs:
   lapack:
     runs-on: ubuntu-20.04
     env:
-      DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack
+      DOCKER_FROM: ""
+      DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-un
       DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-lapack
       PUSH: false
     steps:
@@ -45,13 +46,6 @@ jobs:
         uses: n1hility/cancel-previous-runs@v2
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-#           restore-keys: |
-#            ${{ runner.os }}-buildx-
       - name: Build and push
         if: contains(steps.changes.outputs.all, 'docker')
         id: docker_build
@@ -61,17 +55,12 @@ jobs:
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
           push: ${{ env.PUSH }}
-#          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-      # This ugly bit is necessary if you don't want your cache to grow forever
-      # till it hits GitHub's limit of 5GB.
-      # Temp fix
-      # https://github.com/docker/build-push-action/issues/252
-      # https://github.com/moby/buildkit/issues/1896
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          outputs: type=docker,dest=/tmp/${{ env.DOCKER_IMAGE }}.tar
+      - name: Upload artifacts
+        uses: actions/upload-artifacts@v2
+        with:
+          name: ${{ env.DOCKER_IMAGE}}.tar
+          path: /tmp/${{ env.DOCKER_IMAGE}}.tar
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -111,7 +100,6 @@ jobs:
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
           push: ${{ env.PUSH }}
-          cache-from: ${{ env.DOCKER_IMAGE }}
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -120,6 +108,7 @@ jobs:
     needs: lapack
     runs-on: ubuntu-20.04
     env:
+      DOCKER_FROM: verificarlo/fuzzy:v0.4.1-lapack
       DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
       DOCKER_FILE: ./docker/level1/Dockerfile.ubuntu20.04-python
       PUSH: false
@@ -136,6 +125,15 @@ jobs:
       - name: Check for Dockerfile changes
         uses: jitterbit/get-changed-files@v1
         id: changes
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.DOCKER_FROM}}
+          path: /tmp
+      - name: Load Docker image
+        run: |
+          docker load --input /tmp/${{ env.DOCKER_FROM }}.tar
+          docker image ls -a
       - name: Build and push
         if: contains(steps.changes.outputs.all, 'Dockerfile')
         id: docker_build
@@ -145,7 +143,6 @@ jobs:
           file: ${{ env.DOCKER_FILE }}
           tags: ${{ env.DOCKER_IMAGE }} 
           push: ${{ env.PUSH }}
-          cache-from: env.DOCKER_IMAGE
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
         run: echo ${{ steps.docker_build.outputs.digest }}
