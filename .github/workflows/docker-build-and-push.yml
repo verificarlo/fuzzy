@@ -56,7 +56,9 @@ jobs:
           fi
 
       - name: Download Docker artifacts, if available
-        if: ${{ matrix.DOCKER_FROM != "" }} && contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: |
+          [ -e matrix.DOCKER_FROM ] &&
+          contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
         uses: actions/download-artifact@v2
         with:
           name: ${{ matrix.DOCKER_FROM }}
