@@ -4,7 +4,7 @@ on:
   push:
     branches: ['*']
   pull_request_target:
-    types: [opened, edited, synchronize, assigned]
+    types: [assigned, review_requested]
 
 jobs:
   fuzzy:
