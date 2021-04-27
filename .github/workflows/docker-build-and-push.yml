@@ -57,7 +57,7 @@ jobs:
 
       - name: Download Docker artifacts, if available
         if: |
-          [ -e matrix.DOCKER_FROM ] &&
+          [ ! -z ${{ matrix.DOCKER_FROM }} ] &&
           contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
         uses: actions/download-artifact@v2
         with:
@@ -67,7 +67,7 @@ jobs:
       - name: (optionally) Load, Build, and (optionally) Push Docker image
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
         run: |
-          if [ -z ${{ env.DOCKER_FROM }} ]
+          if [ ! -z ${{ matrix.DOCKER_FROM }} ]
           then
             docker load --input /tmp/${{ matrix.DOCKER_FROM }}.tar
             docker image ls -a
