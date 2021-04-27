@@ -60,7 +60,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.DOCKER_TO}}.tar
+          name: ${{ env.DOCKER_TO}}
           path: /tmp/${{ env.DOCKER_TO}}.tar
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'Dockerfile')
@@ -91,7 +91,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: ${{ env.DOCKER_FROM}}
+          name: ${{ env.DOCKER_FROM }}
           path: /tmp
       - name: Load Docker image
         run: |
