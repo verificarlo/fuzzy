@@ -94,7 +94,7 @@ jobs:
           path: /tmp/${{ matrix.DOCKER_TO }}.tar
 
   python:
-    needs: lapack
+    needs: fuzzy
     runs-on: ubuntu-20.04
     env:
       DOCKER_FROM: fuzzy_v0.4.1-lapack-un
