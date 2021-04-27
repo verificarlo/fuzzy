@@ -107,6 +107,7 @@ jobs:
           tags: ${{ env.DOCKER_IMAGE }} 
           push: ${{ env.PUSH }}
           load: true
+          cache-from: type=local,src=/tmp/
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
