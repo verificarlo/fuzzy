@@ -107,7 +107,13 @@ jobs:
           tags: ${{ env.DOCKER_IMAGE }} 
           push: ${{ env.PUSH }}
           load: true
+          outputs: type=docker,dest=/tmp/${{ env.DOCKER_TO }}.tar
           cache-from: type=local,src=/tmp/
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.DOCKER_TO}}
+          path: /tmp/${{ env.DOCKER_TO}}.tar
       - name: Image digest
         if: contains(steps.changes.outputs.all, 'docker')
         run: echo ${{ steps.docker_build.outputs.digest }}
