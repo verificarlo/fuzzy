@@ -117,7 +117,6 @@ jobs:
       DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
       DOCKER_IMAGE: verificarlo/fuzzy
       DOCKER_FROM_TAG: v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
-      DOCKER_TAG: ""
 
     steps:
       - name: Checkout repository
