@@ -10,7 +10,7 @@ jobs:
   fuzzy:
     runs-on: ubuntu-20.04
     env:
-      RUN_IF_CHANGED: docker
+      RUN_IF_CHANGED: Dockerfile
     strategy:
       max-parallel: 1
       matrix:
