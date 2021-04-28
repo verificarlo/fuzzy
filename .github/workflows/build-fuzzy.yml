@@ -1,4 +1,4 @@
-name: Docker build and push
+name: Build Fuzzy Environments
 
 on:
   push:
