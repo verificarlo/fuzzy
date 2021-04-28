@@ -3,8 +3,8 @@ name: Build Fuzzy Environments
 on:
   push:
     branches: ['*']
-  pull_request_target:
-    types: [assigned, review_requested]
+  pull_request:
+    branches: ['*']
 
 jobs:
   fuzzy:
@@ -15,7 +15,7 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          - NAME: Base
+          - NAME: Lapack + Libmath
             DOCKER_FROM: ""
             DOCKER_TO: fuzzy_v0.4.1-lapack
             DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack
