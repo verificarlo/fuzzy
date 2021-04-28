@@ -1,0 +1,170 @@
+name: Build Fuzzy Environments
+
+on:
+  push:
+    branches: ['*']
+  pull_request_target:
+    types: [assigned, review_requested]
+
+jobs:
+  fuzzy:
+    runs-on: ubuntu-20.04
+    env:
+      RUN_IF_CHANGED: docker
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - NAME: Base
+            DOCKER_FROM: ""
+            DOCKER_TO: fuzzy_v0.4.1-lapack
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack
+            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-lapack
+
+          - NAME: Python
+            DOCKER_FROM: fuzzy_v0.4.1-lapack
+            DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
+            DOCKER_FILE: ./docker/level1/Dockerfile.ubuntu20.04-python
+
+          - NAME: Numpy
+            DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5
+            DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5-numpy
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy
+            DOCKER_FILE: ./docker/level2/Dockerfile.ubuntu20.04-python-numpy
+
+          - NAME: Scipy
+            DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5-numpy
+            DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy
+            DOCKER_FILE: ./docker/level3/Dockerfile.ubuntu20.04-python-numpy-scipy
+
+          - NAME: Scikit-Learn
+            DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy
+            DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
+            DOCKER_FILE: ./docker/level4/Dockerfile.ubuntu20.04-python-numpy-scipy-sklearn
+
+    name: ${{ matrix.NAME }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Check for file changes
+        uses: jitterbit/get-changed-files@v1
+        id: changes
+
+      - name: Print list of changed files
+        run: echo ${{ steps.changes.outputs.all }}
+
+      - name: If Dockerfiles have been updated, cancel running upstream jobs
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+
+      - name: Determine if images will be pushed to Docker, and login as needed
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        run: |
+          if ([ "${{github.event_name}}" == "push" ] && [ "${{github.ref}}" == "refs/heads/master" ])
+          then
+              echo This is a push to master: we will push to Docker Hub
+              echo "PUSH=true" >> "$GITHUB_ENV"
+              docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          else
+              echo This is a PR or non-master push: we will not push to Docker Hub
+              echo "PUSH=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Download Docker artifacts, if available
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ matrix.DOCKER_FROM }}
+          path: /tmp
+
+      - name: (optionally) Load, Build, and (optionally) Push Docker image
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        run: |
+          if [ ! -z ${{ matrix.DOCKER_FROM }} ]
+          then
+            docker load --input /tmp/${{ matrix.DOCKER_FROM }}.tar
+            docker image ls -a
+          fi
+
+          docker build ./ -t ${{ matrix.DOCKER_IMAGE }} \
+                          -f ${{ matrix.DOCKER_FILE }}
+
+          docker save ${{ matrix.DOCKER_IMAGE }} -o /tmp/${{ matrix.DOCKER_TO }}.tar
+
+          if ${{ env.PUSH }}
+          then
+            docker push ${{ matrix.DOCKER_IMAGE }}
+          fi
+
+      - name: Upload Docker artifacts
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.DOCKER_TO }}
+          path: /tmp/${{ matrix.DOCKER_TO }}.tar
+
+  rename-publish:
+    needs: fuzzy
+    runs-on: ubuntu-20.04
+    env:
+      RUN_IF_CHANGED: docker
+      DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
+      DOCKER_IMAGE: verificarlo/fuzzy
+      DOCKER_FROM_TAG: v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Check for file changes
+        uses: jitterbit/get-changed-files@v1
+        id: changes
+
+      - name: Print list of changed files
+        run: echo ${{ steps.changes.outputs.all }}
+
+      - name: If Dockerfiles have been updated, cancel running upstream jobs
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        uses: n1hility/cancel-previous-runs@v2
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+
+      - name: Determine if images will be pushed to Docker, and login as needed
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        run: |
+          if ([ "${{github.event_name}}" == "push" ] && [ "${{github.ref}}" == "refs/heads/master" ])
+          then
+              echo This is a push to master: we will push to Docker Hub
+              echo "PUSH=true" >> "$GITHUB_ENV"
+              docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          else
+              echo This is a PR or non-master push: we will not push to Docker Hub
+              echo "PUSH=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Download Docker artifacts, if available
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.DOCKER_FROM }}
+          path: /tmp
+
+      - name: (optionally) Load, Rename, and Push Docker image
+        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        run: |
+          docker load --input /tmp/${{ env.DOCKER_FROM }}.tar
+          docker image ls -a
+
+          docker image tag ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_FROM_TAG }} \
+                           ${{ env.DOCKER_IMAGE }}:latest
+
+          if ${{ env.PUSH }}
+          then
+            docker push ${{ env.DOCKER_IMAGE }}:latest
+          fi
