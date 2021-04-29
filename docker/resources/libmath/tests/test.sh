@@ -17,7 +17,7 @@ function assert_noise() {
         echo "Failed"
         exit 1
     else
-        echo "Successed"
+        echo "Success"
     fi
 }
 
