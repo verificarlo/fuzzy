@@ -36,9 +36,6 @@ RUN cd /opt/mca-libmath/ &&\
     make &&\
     make test
 
-# Preloading the instrumented shared library
-ENV LD_PRELOAD=/opt/mca-libmath/libmath.so
-ENV VFC_BACKENDS_SILENT_LOAD="True"
 
 # Build BLAS and LAPACK from the following URL's instructions:
 #  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
@@ -62,8 +59,12 @@ RUN cd /opt/build/ &&\
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
+# Preloading the instrumented shared library
+ENV LD_PRELOAD="/opt/mca-libmath/libmath.so:/usr/local/lib/libblas.so:/usr/local/lib/libcblas.so"
+
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
+ENV VFC_BACKENDS_SILENT_LOAD="True"
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 # Set bash shell as entrypoint
