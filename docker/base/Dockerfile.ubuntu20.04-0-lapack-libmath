@@ -30,6 +30,16 @@ RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
 ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
+# Create instrumented shared mathematical library
+COPY docker/resources/libmath/ /opt/mca-libmath/
+RUN cd /opt/mca-libmath/ &&\
+    make &&\
+    make test
+
+# Preloading the instrumented shared library
+ENV LD_PRELOAD=/opt/mca-libmath/libmath.so
+ENV VFC_BACKENDS_SILENT_LOAD="True"
+
 # Build BLAS and LAPACK from the following URL's instructions:
 #  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
 RUN cd /opt/build/ &&\
@@ -51,16 +61,6 @@ RUN cd /opt/build/ &&\
 
 # Remove temporary files
 RUN rm -rf /opt/build/*
-
-# Create instrumented shared mathematical library
-RUN git clone https://github.com/big-data-lab-team/MCA-libmath.git /opt/mca-libmath/ &&\
-    cd /opt/mca-libmath/src/ &&\
-    make &&\
-    make test
-
-# Preloading the instrumented shared library
-ENV LD_PRELOAD=/opt/mca-libmath/libmath.so
-ENV VFC_BACKENDS_SILENT_LOAD="True"
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
