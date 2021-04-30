@@ -19,31 +19,31 @@ jobs:
             DOCKER_FROM: ""
             DOCKER_TO: fuzzy_v0.4.1-lapack
             DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack
-            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-lapack
+            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-0-lapack-libmath
 
           - NAME: Python
             DOCKER_FROM: fuzzy_v0.4.1-lapack
             DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5
             DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5
-            DOCKER_FILE: ./docker/level1/Dockerfile.ubuntu20.04-python
+            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-1-python
 
           - NAME: Numpy
             DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5
             DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5-numpy
             DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy
-            DOCKER_FILE: ./docker/level2/Dockerfile.ubuntu20.04-python-numpy
+            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-2-numpy
 
           - NAME: Scipy
             DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5-numpy
             DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy
             DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy
-            DOCKER_FILE: ./docker/level3/Dockerfile.ubuntu20.04-python-numpy-scipy
+            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-3-scipy
 
           - NAME: Scikit-Learn
             DOCKER_FROM: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy
             DOCKER_TO: fuzzy_v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
             DOCKER_IMAGE: verificarlo/fuzzy:v0.4.1-lapack-python3.8.5-numpy-scipy-sklearn
-            DOCKER_FILE: ./docker/level4/Dockerfile.ubuntu20.04-python-numpy-scipy-sklearn
+            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-4-sklearn
 
     name: ${{ matrix.NAME }}
     steps:
