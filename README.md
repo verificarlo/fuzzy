@@ -24,7 +24,7 @@ $ python3 -c "print(sum([0.001] * 1000))"
 ). While small issues like the one above are unlikely to cause catestrophic failures on
 their own, they can cascade over the course of an execution and it isn't uncommon to
 find a [plane that requires a power cycle every two months](https://www.theregister.com/2020/04/02/boeing_787_power_cycle_51_days_stale_data)
-or an [unstable series that consistently converges to the wrong solution](https://nbviewer.jupyter.org/github/gkiar/fuzzy/blob/master/tutorial/evaluating_unstable_sequence.ipynb).
+or an [unstable series that consistently converges to the wrong solution](https://nbviewer.jupyter.org/github/verificarlo/fuzzy/blob/master/tutorial/evaluating_unstable_sequence.ipynb).
 
 *Fuzzy* allows you to study the stability or *trustworthiness* of tools and pipelines.
 You start by *instrumenting* libraries in your pipeline which do the bulk of numerical
