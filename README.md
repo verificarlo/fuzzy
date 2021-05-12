@@ -88,8 +88,33 @@ prior to performing your experiments! *Fuzzy* should print a log message to the
 terminal when you run your commands, including the configuration, so you can verify
 that the parameters were properly specified.
 
+#### Using Fuzzy in Multi-stage builds
+Fuzzy provides a set of recompiled shared objects and tools that facilitate adding
+Monte Carlo Arithmetic to tools. If you've got a Docker container which relies on
+some of these libraries, you can easily add *Fuzzy* with a [Multi-stage Docker build](https://docs.docker.com/develop/develop-images/multistage-build/).
+
+For example:
+
+```
+FROM verificarlo/fuzzy:latest as fuzzy
+
+# Your target image
+FROM user/image:version
+
+# Copy fuzzy environment from fuzzy image
+RUN mkdir -p /opt/mca-libmath
+COPY --from=fuzzy /opt/mca-libmath/libmath.so /opt/mca-libmath/
+COPY --from=fuzzy /usr/local/lib/libinterflop* /usr/local/lib/
+
+# If you will also want to recompile more libraries with verificarlo, add these lines
+COPY --from=fuzzy /usr/local/bin/verificarlo* /usr/local/bin/
+COPY --from=fuzzy /usr/local/include/* /usr/local/include/
+
+ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=mca'
+```
+
 #### Running Fuzzy workflows
-In the context of *fuzzy* experiments, it is important to remember that by default
+In the context of *Fuzzy* experiments, it is important to remember that by default
 each execution will be evaluated with a unique random state, meaning that when you
 run it again you may get slightly (or very) different results. If your goal is to
 characterize the variability in your results, or obtain a robust estimate of the
