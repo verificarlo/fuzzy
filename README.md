@@ -6,7 +6,7 @@
 
 *A fuzzy ecosystem for evaluating the effect of numerical error on computational tools.*
 
-[![Fuzzy Marimo](https://github.com/verificaro/fuzzy/raw/master/img/fuzzy.png)](./img/fuzzy.png)
+[![Fuzzy Marimo](https://github.com/verificarlo/fuzzy/raw/master/img/fuzzy.png)](./img/fuzzy.png)
 
 ## Motivation
 
