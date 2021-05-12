@@ -48,7 +48,15 @@ that's no problem, just convert the container using the appropriate method for
 your system ([e.g.](https://docs.computecanada.ca/wiki/Singularity#Creating_images)).
 
 If you would like to build the environment locally on your system, look at the
-Dockerfiles in `docker/base/` to see how installation was performed.
+Dockerfiles in `docker/base/` to see how installation was performed. At the end of the
+build chain, you'll find instrumented versions of `libmath`, `lapack`, `python3`,
+`numpy`, and several other recompiled libraries.
+
+An example for how to verify your installation for Python could be the following:
+```
+$ python3 -c "print([sum([.001]*1000) for _ in range(3)])"
+[1.0, 0.9999999999999997, 1.0000000000000007, 1.0000000000000002]
+```
 
 #### Adding your software
 If your code is written in, say, Python, then you can simply mount your code to
@@ -89,12 +97,27 @@ each execution.
 It's also important to remember that the execution time will be increased when using
 *Fuzzy*, as compared to running tools in a determinitic environment. Depending on
 the tool, the instrumentation, and the MCA mode, this additional overhead may range
-from negligible to the order of a ***100x*** slowdown.
+from negligible to the order of a ***30x*** slowdown.
 
 Included in the references below are some references which can be referred to when
 deciding how many perturbations to run, how to consider groups of results, and
 demonstrating the differences in overhead that may exist between different
 instrumentations.
+
+#### Quick overview of Monte Carlo Arithmetic
+A detailed explanation of Monte Carlo Arithmetic can be found in the references below
+or the [Verificarlo repository](https://github.com/verificarlo/verificarlo). In short,
+here is some terminology to get you started.
+
+In this form of stochastic arithmetic you have three modes for perturbing your
+floating-point operations `x = a op b` where `op` is in `{+,-,*,/}`:
+
+1. Random Rounding (RR): `x = inexact(a op b)`
+2. Precision Bounding (PB): `x = inexact(a) op inexact(b)`
+3. Full MCA (MCA): `x = inexact(inexact(a) op inexact(b))`
+
+In this implementation, the `inexact` operation is the addition of a `0`-centered
+uniform random variable at the target bit of precision.
 
 #### Common failures
 As you become familiar with *Fuzzy*, you may run into some of the following common
@@ -118,10 +141,10 @@ of this can be found for [`libmath`](/docker/resources/libmath/).
 
 ## Contributing
 
-For instructions on how to contribute, please refer to the [Contribution Guide](contributing.md).
+For instructions on how to contribute, please refer to the [Contribution Guide](.github/CONTRIBUTING.md).
 
 ## References
-The *Fuzzy* ecosystem has emerged-from and been used-in several scientific
+The *Fuzzy* ecosystem has emerged from — and been used in — several scientific
 publications. Below is a list of papers which present the techniques used, the
 tools which have been developed accordingly, and demonstrate how decision-making
 and applications can be built atop them:
