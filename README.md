@@ -101,7 +101,7 @@ FROM verificarlo/fuzzy:latest as fuzzy
 # Your target image
 FROM user/image:version
 
-# Copy fuzzy environment from fuzzy image
+# Copy libmath fuzzy environment from fuzzy image, for example
 RUN mkdir -p /opt/mca-libmath
 COPY --from=fuzzy /opt/mca-libmath/libmath.so /opt/mca-libmath/
 COPY --from=fuzzy /usr/local/lib/libinterflop* /usr/local/lib/
@@ -192,5 +192,6 @@ and applications can be built atop them:
 
 ## License
 The *Fuzzy* copyright belongs to all contributors of this repository, and it is
-licensed for public use under the same terms as the [LLVM project](https://foundation.llvm.org/relicensing/LICENSE.txt),
-which is a modified version of the Apache 2.0 license.
+[licensed](./LICENSE) for public use under the same terms as the
+[LLVM project](https://foundation.llvm.org/relicensing/LICENSE.txt), which is a
+modified version of the Apache 2.0 license.
