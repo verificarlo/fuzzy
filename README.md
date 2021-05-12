@@ -84,7 +84,9 @@ boot up a debugging session in your environment (e.g. a Python shell, GDB, etc.)
 load a math library, and run a basic math function a few times (e.g. `sin(1)`) —
 you should get different results if your instrumentation is setup properly.
 ***Important***: Don't forget to set the precision back to your desired level
-prior to performing your experiments!
+prior to performing your experiments! *Fuzzy* should print a log message to the
+terminal when you run your commands, including the configuration, so you can verify
+that the parameters were properly specified.
 
 #### Running Fuzzy workflows
 In the context of *fuzzy* experiments, it is important to remember that by default
