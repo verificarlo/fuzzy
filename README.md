@@ -1,5 +1,6 @@
 # Fuzzy
 
+[![DOI](https://zenodo.org/badge/218554957.svg)](https://zenodo.org/badge/latestdoi/218554957)
 [![Build Fuzzy Environments](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml/badge.svg?branch=master)](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/verificarlo/fuzzy)](https://hub.docker.com/r/verificarlo/fuzzy)
 [![GPL Licensed](https://img.shields.io/badge/license-GPL-blue)](./LICENSE)
