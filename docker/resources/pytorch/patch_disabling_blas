@@ -1,0 +1,13 @@
+diff --git a/.jenkins/pytorch/build.sh b/.jenkins/pytorch/build.sh
+index 23c9f92..f972150 100755
+--- a/.jenkins/pytorch/build.sh
++++ b/.jenkins/pytorch/build.sh
+@@ -227,6 +227,8 @@ else
+     if [[ "$BUILD_ENVIRONMENT" != *ppc64le*  && "$BUILD_ENVIRONMENT" != *clang* && "$BUILD_ENVIRONMENT" != *verificarlo* ]]; then
+       WERROR=1 python setup.py install
+     else
++      python setup.py build --cmake-only
++      sed -i "s/AT_BUILD_WITH_BLAS() 1/AT_BUILD_WITH_BLAS() 0/" aten/src/ATen/Config.h
+       python setup.py install
+     fi
+

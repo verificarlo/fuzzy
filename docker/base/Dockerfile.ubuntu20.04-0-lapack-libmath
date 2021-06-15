@@ -1,0 +1,71 @@
+FROM verificarlo/verificarlo:v0.4.1
+
+# Setup build dependencies
+RUN apt-get update -qqq &&\
+    apt-get install -y --no-install-recommends -qqq \
+    make build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev wget \
+    curl llvm libncurses5-dev  libncursesw5-dev \
+    xz-utils tk-dev wget fort77 gfortran cmake lzma-dev liblzma-dev &&\
+    rm -rf /var/lib/apt/lists/ &&\
+    mkdir -p /opt/build/
+
+# Copy verificarlo's exclusion file for Python 3
+COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
+
+# Copy and apply verificarlo patch for adding VFC_BACKENDS_FROM_FILE option
+# Could be removed when verificarlo-v0.4.2 will be available
+COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
+COPY docker/resources/vfcwrapper.patch /tmp/vfcwrapper.patch
+RUN patch $(which verificarlo) /tmp/verificarlo.patch
+RUN patch /usr/local/include/vfcwrapper.c /tmp/vfcwrapper.patch
+
+# Setting compilers and linkers to use verificarlo
+ENV CC "verificarlo-c"
+ENV CXX "verificarlo-c++"
+ENV FC "verificarlo-f"
+
+# Load backend IEEE
+RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
+ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+
+# Create instrumented shared mathematical library
+COPY docker/resources/libmath/ /opt/mca-libmath/
+RUN cd /opt/mca-libmath/ &&\
+    make &&\
+    make test
+
+
+# Build BLAS and LAPACK from the following URL's instructions:
+#  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
+RUN cd /opt/build/ &&\
+    wget http://www.netlib.org/lapack/lapack-3.9.0.tgz &&\
+    gunzip lapack-3.9.0.tgz &&\
+    tar xf lapack-3.9.0.tar &&\
+    cd /opt/build/lapack-3.9.0/ &&\
+    cp make.inc.example make.inc &&\
+    sed -i 's/= gcc/= verificarlo-c/g' make.inc &&\
+    sed -i 's/= gfortran/= verificarlo-f/g' make.inc &&\
+    sed -i 's/TIMER    = INT_ETIME/#TIMER    = INT_ETIME/g' make.inc &&\
+    sed -i 's/# TIMER = NONE/TIMER = NONE/g' make.inc &&\
+    mkdir build &&\
+    cd /opt/build/lapack-3.9.0/build &&\
+    cmake FC=verificarlo-f -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=verificarlo-c -DCMAKE_Fortran_COMPILER=verificarlo-f \
+    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON  .. &&\
+    make &&\
+    make install
+
+# Remove temporary files
+RUN rm -rf /opt/build/*
+
+# Preloading the instrumented shared library
+ENV LD_PRELOAD="/opt/mca-libmath/libmath.so:/usr/local/lib/libblas.so:/usr/local/lib/libcblas.so"
+
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo-c"
+ENV VFC_BACKENDS_SILENT_LOAD="True"
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+# Set bash shell as entrypoint
+ENTRYPOINT [ "/bin/bash"]

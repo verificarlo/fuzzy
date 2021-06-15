@@ -1,0 +1,27 @@
+FROM verificarlo/fuzzy:v0.4.1-lapack
+
+# Use IEEE mode for compiling with verificarlo
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+
+# Remove any existing python packages
+RUN apt -y -qqq remove python3
+
+## Build Python 3.8.5 from source and the associated pip
+RUN cd /opt/build/ && \
+    wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
+    tar xvf Python-3.8.5.tgz && \
+    cd Python-3.8.5 && \
+    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" ./configure --enable-optimizations --with-ensurepip=install &&\
+    make -j &&\
+    make install &&\ 
+    wget https://bootstrap.pypa.io/get-pip.py &&\
+    python3 get-pip.py
+
+# Remove temporary files
+RUN rm -rf /opt/build/*
+
+# Restore default MCA mode
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+# Set entrypoint
+ENTRYPOINT [ "/bin/bash"]
