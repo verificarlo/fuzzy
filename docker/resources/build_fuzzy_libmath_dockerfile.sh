@@ -26,17 +26,18 @@ HERE
 }
 
 build_docker() {
-    docker build -f ${DOCKERFILE} .
+    docker build -f ${DOCKERFILE} -t ${1} .
 }
 
-if [[ $# < 1 ]]; then
-    echo "usage: ./build_fuzzy_libmath_dockerfile <DOCKER_IMAGE>"
+if [[ $# < 2 ]]; then
+    echo "usage: ./build_fuzzy_libmath_dockerfile <DOCKER_IMAGE> <TAG>"
     exit 1
 else
     BASEIMAGE=$1
+    TAG=$2
 fi
 
-echo "Build fuzzy-libmath for ${BASEIMAGE}"
+echo "Build fuzzy-libmath for ${BASEIMAGE} as ${TAG}"
 generate_docker $BASEIMAGE
-build_docker
+build_docker $TAG
 
