@@ -1,0 +1,23 @@
+# [v0.5.0] 2021/06/18
+
+## Changed
+    * Changed verificarlo version to compile fuzzy images [v0.4.1 -> v0.5.0]
+
+## Deprecated
+    * Version v0.4.1 should not be used anymore because it contains a bug
+    on vectorized instructions.
+
+# [v0.4.1] 2021/06/18
+
+## Added
+    * Add build script to wrap an existing docker image with the fuzzy-libmath
+    * Add dockerfile for base3 + sklearn:0.23.2 (base 4)
+    * Add dockerfile for base2 + scipy:1.5.4 (base 3)
+    * Add dockerfile for base1 + numpy:1.19.1 (base 2)
+    * Add dockerfile for base0 + python:3.8.5 (base 1)
+    * Add dockerfile for fuzzy lapack:3.9.0 + libmath (base 0)
+    * Add fuzzy libmath project from https://github.com/big-data-lab-team/MCA-libmath
+    
+# [v0] 2021/05/12
+
+    This release is merely being issued such that the project can begin indexing on Zenodo, and a DOI can be referenced for this project.
