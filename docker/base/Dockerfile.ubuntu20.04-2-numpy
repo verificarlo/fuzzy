@@ -12,7 +12,7 @@ RUN  git config --global user.email "fake@mail.com" &&\
     git config --global user.name "Anonymous Patcher" 
 
 # Build numpy from sources and link with the local BLAS and LAPACK
-RUN pip3.8 install cython
+RUN python3 -m pip install cython
 RUN cd /opt/build &&\
     git clone -b v1.19.1 --depth=1 https://github.com/numpy/numpy.git &&\
     cd /opt/build/numpy &&\
