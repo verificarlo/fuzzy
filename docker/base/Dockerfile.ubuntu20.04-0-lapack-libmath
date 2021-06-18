@@ -14,13 +14,6 @@ RUN apt-get update -qqq &&\
 # Copy verificarlo's exclusion file for Python 3
 COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
 
-# Copy and apply verificarlo patch for adding VFC_BACKENDS_FROM_FILE option
-# Could be removed when verificarlo-v0.4.2 will be available
-COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
-COPY docker/resources/vfcwrapper.patch /tmp/vfcwrapper.patch
-RUN patch $(which verificarlo) /tmp/verificarlo.patch
-RUN patch /usr/local/include/vfcwrapper.c /tmp/vfcwrapper.patch
-
 # Setting compilers and linkers to use verificarlo
 ENV CC "verificarlo-c"
 ENV CXX "verificarlo-c++"

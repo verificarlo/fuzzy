@@ -24,6 +24,10 @@ RUN cd /opt/build &&\
     --compiler=verificarlo --fcompiler=verificarlof build_ext \
     --compiler=verificarlo --fcompiler=verificarlof build -j 4 install
 
+# Smoked test for vectorization.
+# We should run the full numpy test suit in next versions
+RUN python3 -c "import numpy as np; x = np.array(range(4),dtype=np.float64); z=[i**2 for i in range(4)]; assert((x**2==z).all())"
+
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
