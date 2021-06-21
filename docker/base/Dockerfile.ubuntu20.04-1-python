@@ -3,11 +3,9 @@ FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack
 
 # Unset LD_PRELOAD because it will open VFC_BACKENDS_FROM_FILE
 # and causes bug
-ENV LD_PRELOAD_OLD=$LD_PRELOAD
-RUN unset LD_PRELOAD
 
 # Use IEEE mode for compiling with verificarlo
-RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+RUN LD_PRELOAD="" echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 # Remove any existing python packages
 RUN apt -y -qqq remove python3
@@ -27,10 +25,7 @@ RUN cd /opt/build/ && \
 RUN rm -rf /opt/build/*
 
 # Restore default MCA mode
-RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
-
-# Reset LD_PRELOAD
-ENV LD_PRELOAD=${LD_PRELOAD_OLD}
+RUN LD_PRELOAD="" echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 # Set entrypoint
 ENTRYPOINT [ "/bin/bash"]
