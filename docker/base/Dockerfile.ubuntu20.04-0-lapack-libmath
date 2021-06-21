@@ -24,7 +24,7 @@ RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
 ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
-RUN sed -i  '287 a fclose(vfc_backends_fromfile_file); ' /usr/local/include/vfcwrapper.c
+RUN sed -i  '287 a fclose(fi); ' /usr/local/include/vfcwrapper.c
 
 # Create instrumented shared mathematical library
 COPY docker/resources/libmath/ /opt/mca-libmath/
