@@ -1,9 +1,13 @@
 ARG VERIFICARLO_VERSION=v0.5.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
 
+# Unset LD_PRELOAD because it will open VFC_BACKENDS_FROM_FILE
+# and causes bug
+RUN LD_PRELOAD_OLD=${LD_PRELOAD}
+ENV LD_PRELOAD=""
 
 # Use IEEE mode for compiling with verificarlo
-RUN LD_PRELOAD="" echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 # Copy verificarlo's exclusion file for Python 3
 COPY docker/resources/numpy-verificarlo.patch /tmp/numpy-verificarlo.patch
@@ -33,7 +37,8 @@ RUN python3 -c "import numpy as np; x = np.array(range(4),dtype=np.float64); z=[
 RUN rm -rf /opt/build/*
 
 # Restore default MCA mode
-RUN LD_PRELOAD="" echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
+ENV LD_PRELOAD=${LD_PRELOAD_OLD}
 
 ENTRYPOINT [ "/bin/bash"]

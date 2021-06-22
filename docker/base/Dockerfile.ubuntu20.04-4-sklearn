@@ -1,9 +1,13 @@
 ARG VERIFICARLO_VERSION=v0.5.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
 
+# Unset LD_PRELOAD because it will open VFC_BACKENDS_FROM_FILE
+# and causes bug
+RUN LD_PRELOAD_OLD=${LD_PRELOAD}
+ENV LD_PRELOAD=""
 
 # Load backend IEEE
-RUN LD_PRELOAD="" echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 RUN cd /opt/build &&\
   git clone https://github.com/scikit-learn/scikit-learn.git &&\
@@ -16,6 +20,8 @@ RUN rm -rf /opt/build/*
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
-RUN LD_PRELOAD="" echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+ENV LD_PRELOAD=${LD_PRELOAD_OLD}
 
 ENTRYPOINT [ "/bin/bash"]
