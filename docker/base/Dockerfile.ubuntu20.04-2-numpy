@@ -27,7 +27,8 @@ RUN cd /opt/build &&\
     cd /opt/build/numpy &&\
     git checkout v1.19.1 &&\
     git am /tmp/numpy-verificarlo.patch &&\
-    CFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative" \
+    OPT="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative" \
+    FOPT="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative" \
     NPY_BLAS_ORDER=BLAS NPY_LAPACK_ORDER=LAPACK \
     python3 setup.py config --compiler=verificarlo --fcompiler=verificarlof build_clib \
     --compiler=verificarlo --fcompiler=verificarlof build_ext \
