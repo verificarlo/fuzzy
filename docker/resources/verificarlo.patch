@@ -1,20 +1,45 @@
---- verificarlo	2020-12-17 11:27:57.074070576 -0500
-+++ /home/yohan/local/bin/verificarlo	2020-12-16 18:37:46.866142995 -0500
-@@ -294,11 +294,17 @@
+diff --git a/verificarlo.in.in b/verificarlo.in.in
+index 14cd655..a9090b8 100644
+--- a/verificarlo.in.in
++++ b/verificarlo.in.in
+@@ -136,7 +136,8 @@ def compile_vfcwrapper(source, output, args, emit_llvm=False):
+ 
+     internal_options = (" -S -emit-llvm " if emit_llvm else "") + \
+         f" -c -Wno-varargs -I {mcalib_includes} "
+-    shell(f'{clang} -O3 -march=native {internal_options} {extra_args} {source} -o {output} ')
++    conservative = '-march=x86-64' if args.conservative else '-march=native'
++    shell(f'{clang} -O3 {conservative} {internal_options} {extra_args} {source} -o {output} ')
+ 
+ 
+ def linker_mode(sources, options, libraries, output, args):
+@@ -204,9 +205,11 @@ def compiler_mode(sources, options, output, args):
+             compile_only([source], ' -c ' + options, basename_output, args)
+             continue
+ 
++        conservative = '-march=x86-64' if args.conservative else ''
++
+         # Compile to ir (fortran uses flang, c uses clang)
+         shell(
+-            f'{compiler} -c -S {debug} {source} {include} -emit-llvm {options} -o {ir.name}')
++            f'{compiler} -c -S {debug} {source} {include} -emit-llvm {options} -o {ir.name} {conservative}')
+ 
+         selectfunction = ""
+         if args.function:
+@@ -246,7 +249,7 @@ def compiler_mode(sources, options, output, args):
+             basename_output = output
+ 
+         # Produce object file
+-        shell(f'{compiler} -c {basename_output} {ins.name} {options}')
++        shell(f'{compiler} -c {basename_output} {ins.name} {options} {conservative}')
+ 
+ 
+ if __name__ == "__main__":
+@@ -282,6 +285,8 @@ if __name__ == "__main__":
      parser.add_argument('--version', action='version', version=PACKAGE_STRING)
      parser.add_argument('--linker', choices=linkers.keys(), default=default_linker,
                          help="linker to use, {dl} by default".format(dl=default_linker))
-+    parser.add_argument('--disable-debug-flag', action="store_true",
-+                        help="Remove -g from the flag since it can cause error with flang")
++    parser.add_argument(
++        '--conservative', action='store_true', help='conservative')
  
      args, other = parser.parse_known_args()
  
-     sources, llvm_options = parse_extra_args(other)
- 
-+    if args.disable_debug_flag:
-+        if "-g" in llvm_options:
-+            llvm_options = llvm_options.replace("-g", "")
-+
-     # check input files
-     if (args.E or args.S or args.c) and len(sources) > 1 and args.o:
-         fail('cannot specify -o when generating multiple output files')

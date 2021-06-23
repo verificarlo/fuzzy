@@ -13,10 +13,14 @@ SRCS = src/wrapping_script.c  # source files
 OBJS = $(SRCS:.c=.o)
 ROOT = $(PWD)
 
+ifdef CONSERVATIVE
+CFLAGS += --conservative
+endif
+
 .PHONY: tracer
 
 $(TARGET_LIB): $(OBJS)
-	$(CC) ${LDFLAGS} -ldl -o $@ $^
+	$(CC) ${LDFLAGS} ${CFLAGS} -ldl -o $@ $^
 
 tracer:
 	$(CC) ${TRACER_FLAGS} ${CFLAGS} ${LDFLAGS} ${LIBS} -o ${TARGET_LIB} $(SRCS)

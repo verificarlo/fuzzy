@@ -1,4 +1,8 @@
-FROM verificarlo/verificarlo:v0.4.1
+ARG VERIFICARLO_VERSION=v0.5.0
+FROM verificarlo/verificarlo:${VERIFICARLO_VERSION}
+
+RUN cat /proc/cpuinfo | grep flags | uniq
+RUN  cat /proc/cpuinfo | grep "model name"  | uniq
 
 # Setup build dependencies
 RUN apt-get update -qqq &&\
@@ -12,13 +16,8 @@ RUN apt-get update -qqq &&\
 
 # Copy verificarlo's exclusion file for Python 3
 COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
-
-# Copy and apply verificarlo patch for adding VFC_BACKENDS_FROM_FILE option
-# Could be removed when verificarlo-v0.4.2 will be available
 COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
-COPY docker/resources/vfcwrapper.patch /tmp/vfcwrapper.patch
 RUN patch $(which verificarlo) /tmp/verificarlo.patch
-RUN patch /usr/local/include/vfcwrapper.c /tmp/vfcwrapper.patch
 
 # Setting compilers and linkers to use verificarlo
 ENV CC "verificarlo-c"
@@ -33,7 +32,7 @@ RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 # Create instrumented shared mathematical library
 COPY docker/resources/libmath/ /opt/mca-libmath/
 RUN cd /opt/mca-libmath/ &&\
-    make &&\
+    make CONSERVATIVE=True &&\
     make test
 
 
@@ -52,20 +51,20 @@ RUN cd /opt/build/ &&\
     mkdir build &&\
     cd /opt/build/lapack-3.9.0/build &&\
     cmake FC=verificarlo-f -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=verificarlo-c -DCMAKE_Fortran_COMPILER=verificarlo-f \
-    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON  .. &&\
+    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON -DCMAKE_C_FLAGS="--conservative" -DCMAKE_Fortran_FLAGS="--conservative"  .. &&\
     make &&\
     make install
 
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
-# Preloading the instrumented shared library
-ENV LD_PRELOAD="/opt/mca-libmath/libmath.so:/usr/local/lib/libblas.so:/usr/local/lib/libcblas.so"
-
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
 ENV VFC_BACKENDS_SILENT_LOAD="True"
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+# Preloading the instrumented shared library
+ENV LD_PRELOAD="/opt/mca-libmath/libmath.so:/usr/local/lib/libblas.so:/usr/local/lib/libcblas.so"
 
 # Set bash shell as entrypoint
 ENTRYPOINT [ "/bin/bash"]
