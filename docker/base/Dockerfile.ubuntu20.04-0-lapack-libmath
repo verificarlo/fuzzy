@@ -32,7 +32,7 @@ RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 # Create instrumented shared mathematical library
 COPY docker/resources/libmath/ /opt/mca-libmath/
 RUN cd /opt/mca-libmath/ &&\
-    make &&\
+    make CONSERVATIVE=True &&\
     make test
 
 
