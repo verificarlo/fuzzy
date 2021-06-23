@@ -21,7 +21,7 @@ RUN cd /opt/build/ && \
     wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
     tar xvf Python-3.8.5.tgz && \
     cd Python-3.8.5 && \
-    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" ./configure --enable-optimizations --with-ensurepip=install &&\
+    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt --conservative" ./configure --enable-optimizations --with-ensurepip=install &&\
     make -j &&\
     make install &&\ 
     wget https://bootstrap.pypa.io/get-pip.py &&\

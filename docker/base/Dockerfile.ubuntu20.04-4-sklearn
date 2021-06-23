@@ -17,7 +17,7 @@ RUN cd /opt/build &&\
   git clone https://github.com/scikit-learn/scikit-learn.git &&\
   cd scikit-learn &&\
   git checkout 0.23.2 &&\
-  python3 setup.py build -j 4 install
+  CFLAGS="--conservative" python3 setup.py build -j 4 install
 
 # Remove temporary files
 RUN rm -rf /opt/build/*

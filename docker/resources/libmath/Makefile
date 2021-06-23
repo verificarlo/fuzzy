@@ -2,7 +2,7 @@
 
 CC = verificarlo-c --save-temps --verbose -g
 TRACER_FLAGS = --tracer --tracer-debug-mode --tracer-level=temporary
-CFLAGS = -fPIC --verbose  # C flags
+CFLAGS = -fPIC --verbose --conservative  # C flags
 LDFLAGS = -shared   # linking flags
 LIBS= -ldl
 RM = rm -f 
