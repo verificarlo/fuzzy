@@ -8,7 +8,7 @@ index 14cd655..a9090b8 100644
          f" -c -Wno-varargs -I {mcalib_includes} "
 -    shell(f'{clang} -O3 -march=native {internal_options} {extra_args} {source} -o {output} ')
 +    conservative = '-march=x86-64' if args.conservative else '-march=native'
-+    shell(f'{clang} -O3 {conservative} {internal_options} {extra_args} {source} -o {output} ')
++    shell(f'{clang} -O3 {internal_options} {extra_args} {source} -o {output} {conservative} ')
  
  
  def linker_mode(sources, options, libraries, output, args):

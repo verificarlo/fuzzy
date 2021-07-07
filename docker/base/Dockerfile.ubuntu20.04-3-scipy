@@ -19,7 +19,7 @@ RUN cd /opt/build/ &&\
   git clone https://github.com/scipy/scipy.git &&\
   cd /opt/build/scipy &&\
   git checkout v1.5.4 &&\
-  CFLAGS="--conservative" FFLAGS="--conservative" NPY_NUM_BUILD_JOBS=4 \
+  OPT="--conservative" FOPT="--conservative" NPY_NUM_BUILD_JOBS=4 \
   python3 setup.py config --compiler=verificarlo --fcompiler=verificarlof build_clib \
   --compiler=verificarlo --fcompiler=verificarlof build_ext \
   --compiler=verificarlo --fcompiler=verificarlof build -j 4 install

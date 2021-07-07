@@ -20,9 +20,9 @@ COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
 RUN patch $(which verificarlo) /tmp/verificarlo.patch
 
 # Setting compilers and linkers to use verificarlo
-ENV CC "verificarlo-c"
-ENV CXX "verificarlo-c++"
-ENV FC "verificarlo-f"
+ENV CC "verificarlo-c --conservative"
+ENV CXX "verificarlo-c++ --conservative"
+ENV FC "verificarlo-f --conservative"
 
 # Load backend IEEE
 RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
