@@ -10,6 +10,11 @@ RUN  cat /proc/cpuinfo | grep "model name"  | uniq
 RUN LD_PRELOAD_OLD=${LD_PRELOAD}
 ENV LD_PRELOAD=""
 
+# Setting compilers and linkers to use verificarlo
+ENV CC "verificarlo-c --conservative"
+ENV CXX "verificarlo-c++ --conservative"
+ENV FC "verificarlo-f --conservative"
+
 # Use IEEE mode for compiling with verificarlo
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
@@ -30,6 +35,11 @@ RUN cd /opt/build/ && \
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
+# Check that no AVX2/AVX512 instructions are emitted
+RUN if [[ $( objdump -d $(which python3) | grep "%ymm\|%zmm" | wc -l ) != 0 ]] ; then exit 1 ; fi
+
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo-c"
 # Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 

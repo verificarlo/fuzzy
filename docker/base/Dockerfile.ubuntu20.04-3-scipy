@@ -13,6 +13,11 @@ ENV LD_PRELOAD=""
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
+# Setting compilers and linkers to use verificarlo
+ENV CC "verificarlo-c --conservative"
+ENV CXX "verificarlo-c++ --conservative"
+ENV FC "verificarlo-f --conservative"
+
 RUN pip3 install joblib
 RUN cp /usr/local/bin/verificarlo-f /usr/bin/gfortran
 RUN cd /opt/build/ &&\
@@ -27,8 +32,12 @@ RUN cd /opt/build/ &&\
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
+RUN if [[ $( objdump -d /usr/local/lib/python3.8/site-packages/scipy-1.5.4-py3.8-linux-x86_64.egg/scipy/linalg/cython_blas.cpython-38-x86_64-linux-gnu.so | grep "%ymm\|%zmm" | wc -l ) != 0 ]] ; then exit 1 ; fi
+
+
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
+# Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 ENV LD_PRELOAD=${LD_PRELOAD_OLD}

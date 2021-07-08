@@ -13,6 +13,11 @@ ENV LD_PRELOAD=""
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
+# Setting compilers and linkers to use verificarlo
+ENV CC "verificarlo-c --conservative"
+ENV CXX "verificarlo-c++ --conservative"
+ENV FC "verificarlo-f --conservative"
+
 RUN cd /opt/build &&\
   git clone https://github.com/scikit-learn/scikit-learn.git &&\
   cd scikit-learn &&\
@@ -22,8 +27,14 @@ RUN cd /opt/build &&\
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
+# Check that no AVX2/AVX512 instructions are emitted
+RUN if [[ $( objdump -d /usr/local/lib/python3.8/site-packages/sklearn/svm/_liblinear.cpython-38-x86_64-linux-gnu.so | grep "%ymm\|%zmm" | wc -l ) != 0 ]] ; then exit 1 ; fi
+
+
+
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
+# Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 ENV LD_PRELOAD=${LD_PRELOAD_OLD}

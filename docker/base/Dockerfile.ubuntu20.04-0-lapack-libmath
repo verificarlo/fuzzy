@@ -58,6 +58,9 @@ RUN cd /opt/build/ &&\
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
+# Check that no AVX2/AVX512 instructions are emitted
+RUN if [[ $( objdump -d /usr/local/lib/liblapack.so | grep "%ymm\|%zmm" | wc -l ) != 0 ]] ; then exit 1 ; fi
+
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
 ENV VFC_BACKENDS_SILENT_LOAD="True"
