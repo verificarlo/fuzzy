@@ -1,14 +1,5 @@
 ARG VERIFICARLO_VERSION=v0.5.0
-FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy
-
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
-
-
-# Unset LD_PRELOAD because it will open VFC_BACKENDS_FROM_FILE
-# and causes bug
-RUN LD_PRELOAD_OLD=${LD_PRELOAD}
-ENV LD_PRELOAD=""
+FROM yohanchatelain/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy
 
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
@@ -32,6 +23,7 @@ RUN cd /opt/build/ &&\
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
+# Check that no AVX2/AVX512 instructions are emitted
 RUN if [[ $( objdump -d /usr/local/lib/python3.8/site-packages/scipy-1.5.4-py3.8-linux-x86_64.egg/scipy/linalg/cython_blas.cpython-38-x86_64-linux-gnu.so | grep "%ymm\|%zmm" | wc -l ) != 0 ]] ; then exit 1 ; fi
 
 
@@ -39,7 +31,5 @@ RUN if [[ $( objdump -d /usr/local/lib/python3.8/site-packages/scipy-1.5.4-py3.8
 ENV CC "verificarlo-c"
 # Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
-
-ENV LD_PRELOAD=${LD_PRELOAD_OLD}
 
 ENTRYPOINT [ "/bin/bash"]

@@ -1,15 +1,6 @@
 ARG VERIFICARLO_VERSION=v0.5.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack
 
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
-
-
-# Unset LD_PRELOAD because it will open VFC_BACKENDS_FROM_FILE
-# and causes bug
-RUN LD_PRELOAD_OLD=${LD_PRELOAD}
-ENV LD_PRELOAD=""
-
 # Setting compilers and linkers to use verificarlo
 ENV CC "verificarlo-c --conservative"
 ENV CXX "verificarlo-c++ --conservative"
@@ -26,7 +17,7 @@ RUN cd /opt/build/ && \
     wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
     tar xvf Python-3.8.5.tgz && \
     cd Python-3.8.5 && \
-    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt --conservative" ./configure --enable-optimizations --with-ensurepip=install &&\
+    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt --conservative -Wunused-command-line-argument" ./configure --enable-optimizations --with-ensurepip=install &&\
     make -j &&\
     make install &&\ 
     wget https://bootstrap.pypa.io/get-pip.py &&\
@@ -36,14 +27,12 @@ RUN cd /opt/build/ && \
 RUN rm -rf /opt/build/*
 
 # Check that no AVX2/AVX512 instructions are emitted
-RUN if [[ $( objdump -d $(which python3) | grep "%ymm\|%zmm" | wc -l ) != 0 ]] ; then exit 1 ; fi
+RUN if [ $( objdump -d $(which python3) | grep "%ymm\|%zmm" | wc -l ) != 0 ] ; then exit 1 ; fi
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
 # Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
-
-ENV LD_PRELOAD=${LD_PRELOAD_OLD}
 
 # Set entrypoint
 ENTRYPOINT [ "/bin/bash"]

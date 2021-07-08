@@ -1,14 +1,5 @@
 ARG VERIFICARLO_VERSION=v0.5.0
-FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
-
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
-
-
-# Unset LD_PRELOAD because it will open VFC_BACKENDS_FROM_FILE
-# and causes bug
-RUN LD_PRELOAD_OLD=${LD_PRELOAD}
-ENV LD_PRELOAD=""
+FROM yohanchatelain/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
 
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
@@ -36,7 +27,5 @@ RUN if [[ $( objdump -d /usr/local/lib/python3.8/site-packages/sklearn/svm/_libl
 ENV CC "verificarlo-c"
 # Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
-
-ENV LD_PRELOAD=${LD_PRELOAD_OLD}
 
 ENTRYPOINT [ "/bin/bash"]

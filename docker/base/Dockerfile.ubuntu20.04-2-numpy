@@ -1,22 +1,8 @@
 ARG VERIFICARLO_VERSION=v0.5.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
 
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
-
-
-# Unset LD_PRELOAD because it will open VFC_BACKENDS_FROM_FILE
-# and causes bug
-RUN LD_PRELOAD_OLD=${LD_PRELOAD}
-ENV LD_PRELOAD=""
-
 # Use IEEE mode for compiling with verificarlo
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
-
-# Setting compilers and linkers to use verificarlo
-ENV CC "verificarlo-c --conservative"
-ENV CXX "verificarlo-c++ --conservative"
-ENV FC "verificarlo-f --conservative"
 
 # Copy verificarlo's exclusion file for Python 3
 COPY docker/resources/numpy-verificarlo.patch /tmp/numpy-verificarlo.patch
@@ -25,6 +11,11 @@ COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
 RUN  git config --global user.email "fake@mail.com" &&\
     git config --global user.name "Anonymous Patcher" 
 
+ENV CFLAGS "--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative " 
+ENV FFLAGS "--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative" 
+ENV OPT "--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative" 
+ENV FOPT "--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative"
+
 # Build numpy from sources and link with the local BLAS and LAPACK
 RUN python3 -m pip install cython
 RUN cd /opt/build &&\
@@ -32,8 +23,6 @@ RUN cd /opt/build &&\
     cd /opt/build/numpy &&\
     git checkout v1.19.1 &&\
     git am /tmp/numpy-verificarlo.patch &&\
-    OPT="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative" \
-    FOPT="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative" \
     NPY_BLAS_ORDER=BLAS NPY_LAPACK_ORDER=LAPACK \
     python3 setup.py config --compiler=verificarlo --fcompiler=verificarlof build_clib \
     --compiler=verificarlo --fcompiler=verificarlof build_ext \
@@ -46,14 +35,7 @@ RUN python3 -c "import numpy as np; x = np.array(range(4),dtype=np.float64); z=[
 # Remove temporary files
 RUN rm -rf /opt/build/*
 
-# Check that no AVX2/AVX512 instructions are emitted
-RUN if [[ $( objdump -d /usr/local/lib/python3.8/site-packages/numpy-1.19.1-py3.8-linux-x86_64.egg/numpy/core/_multiarray_umath.cpython-38-x86_64-linux-gnu.so | grep "%ymm\|%zmm" | wc -l ) != 0 ]] ; then exit 1 ; fi
-
-# Restore default behavior for verificarlo's CC
-ENV CC "verificarlo-c"
 # Restore default MCA mode
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
-
-ENV LD_PRELOAD=${LD_PRELOAD_OLD}
 
 ENTRYPOINT [ "/bin/bash"]
