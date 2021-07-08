@@ -1,9 +1,6 @@
 ARG VERIFICARLO_VERSION=v0.5.0
 FROM verificarlo/verificarlo:${VERIFICARLO_VERSION}
 
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
-
 # Setup build dependencies
 RUN apt-get update -qqq &&\
     apt-get install -y --no-install-recommends -qqq \
@@ -20,9 +17,9 @@ COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
 RUN patch $(which verificarlo) /tmp/verificarlo.patch
 
 # Setting compilers and linkers to use verificarlo
-ENV CC "verificarlo-c"
-ENV CXX "verificarlo-c++"
-ENV FC "verificarlo-f"
+ENV CC "verificarlo-c --conservative"
+ENV CXX "verificarlo-c++ --conservative"
+ENV FC "verificarlo-f --conservative"
 
 # Load backend IEEE
 RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
@@ -57,6 +54,9 @@ RUN cd /opt/build/ &&\
 
 # Remove temporary files
 RUN rm -rf /opt/build/*
+
+# Check that no AVX2/AVX512 instructions are emitted
+RUN if [ $( objdump -d /usr/local/lib/liblapack.so | grep "%ymm\|%zmm" | wc -l ) != 0 ] ; then exit 1 ; fi
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
