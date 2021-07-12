@@ -151,6 +151,8 @@ uniform random variable at the target bit of precision.
 As you become familiar with *Fuzzy*, you may run into some of the following common
 sources of error in your (or other) software:
 
+- Fuzzy not running on your system, and giving `Illegal instruction` errors (likely exit-code `132`)? This is probably because our environments were built in a different architecture than yours! We tried to turn off as many optimizations as we could, increasing the portability of these images, but sometimes libraries don't listen to instructions very well... Try rebuilding the images on your local machine. to fix the problem. To our knowledge, `Scipy` is the first package in the install chain which has some dependencies that may ignore the optimization-disabling compiler flags, so you could try starting your rebuild from the `Numpy` image.
+
 - When using MCA or PB modes of perturbation, operations which rely on integer
 values which happen to be stored in floating point containers may crash. For instance,
 imagine you're creating an array and store the desired length as `3.0` instead of `3`;
