@@ -12,7 +12,7 @@ COPY docker/resources/numpy-verificarlo.patch /tmp/numpy-verificarlo.patch
 COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
 
 RUN  git config --global user.email "fake@mail.com" &&\
-    git config --global user.name "Anonymous Patcher" 
+     git config --global user.name "Anonymous Patcher" 
 
 # Build numpy from sources and link with the local BLAS and LAPACK
 RUN python3 -m pip install cython
@@ -30,7 +30,7 @@ RUN cd /opt/build &&\
 
 # Smoked test for vectorization.
 # We should run the full numpy test suit in next versions
-RUN python3 -c "import numpy as np; x = np.array(range(4),dtype=np.float64); z=[i**2 for i in range(4)]; assert((x**2==z).all())"
+RUN python3 -c "import numpy as np; x = np.array(range(4),dtype=np.float64); z=[i**2 for i in range(4)]; print(z, x**2); assert((x**2==z).all())"
 
 # Remove temporary files
 RUN rm -rf /opt/build/*
