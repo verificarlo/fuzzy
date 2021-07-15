@@ -173,6 +173,10 @@ of this can be found for [`libmath`](/docker/resources/libmath/).
 
 For instructions on how to contribute, please refer to the [Contribution Guide](.github/CONTRIBUTING.md).
 
+## Presentation
+If you prefer a visual illustration of everything we've written above, feel free to check-out [the slides
+we recently presented at Scipy2021](https://figshare.com/articles/presentation/Fuzzy_Environments/14991825)!
+
 ## References
 The *Fuzzy* ecosystem has emerged from — and been used in — several scientific
 publications. Below is a list of papers which present the techniques used, the
