@@ -1,22 +1,21 @@
-ARG VERIFICARLO_VERSION=v0.5.0
+ARG VERIFICARLO_VERSION=v0.6.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy
-
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
 
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
-RUN pip3 install joblib
+RUN pip3 install joblib pythran
 RUN cp /usr/local/bin/verificarlo-f /usr/bin/gfortran
+
+RUN ln -sf $(which verificarlo) $(which x86_64-linux-gnu-gcc)
+
 RUN cd /opt/build/ &&\
-  git clone https://github.com/scipy/scipy.git &&\
-  cd /opt/build/scipy &&\
-  git checkout v1.5.4 &&\
-  CFLAGS="--conservative -O0" FFLAGS="--conservative -O0" NPY_NUM_BUILD_JOBS=4 \
-  python3 setup.py config --compiler=verificarlo --fcompiler=verificarlof build_clib \
-  --compiler=verificarlo --fcompiler=verificarlof build_ext \
-  --compiler=verificarlo --fcompiler=verificarlof build -j 4 install
+  wget https://github.com/scipy/scipy/releases/download/v1.7.3/scipy-1.7.3.tar.gz &&\
+  tar xvf scipy-1.7.3.tar.gz &&\
+  cd scipy-1.7.3 &&\
+  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="-Wunused-command-line-argument" \
+  python3 setup.py build -j $(nproc) --disable-optimization install
+
 
 # Remove temporary files
 RUN rm -rf /opt/build/*

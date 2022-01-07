@@ -1,8 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.5.0
+ARG VERIFICARLO_VERSION=v0.6.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack
-
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
 
 # Use IEEE mode for compiling with verificarlo
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
@@ -15,7 +12,7 @@ RUN cd /opt/build/ && \
     wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
     tar xvf Python-3.8.5.tgz && \
     cd Python-3.8.5 && \
-    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt --conservative -O0" ./configure --with-ensurepip=install &&\
+    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" ./configure --with-ensurepip=install &&\
     make -j &&\
     make install &&\ 
     wget https://bootstrap.pypa.io/get-pip.py &&\
