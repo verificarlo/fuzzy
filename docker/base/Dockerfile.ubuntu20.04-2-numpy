@@ -18,7 +18,7 @@ RUN cd /opt/build/ &&\
     wget https://github.com/numpy/numpy/releases/download/v1.22.0/numpy-1.22.0.tar.gz &&\
     tar xvf numpy-1.22.0.tar.gz &&\
     cd numpy-1.22.0 &&\
-    CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
     python3 setup.py build -j $(nproc) --disable-optimization install
 
 

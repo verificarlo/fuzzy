@@ -13,7 +13,7 @@ RUN cd /opt/build/ &&\
   wget https://github.com/scipy/scipy/releases/download/v1.7.3/scipy-1.7.3.tar.gz &&\
   tar xvf scipy-1.7.3.tar.gz &&\
   cd scipy-1.7.3 &&\
-  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="-Wunused-command-line-argument" \
+  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="--conservative -Wunused-command-line-argument" \
   python3 setup.py build -j $(nproc) --disable-optimization install
 
 
