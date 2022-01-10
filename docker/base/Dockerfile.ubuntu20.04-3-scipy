@@ -4,7 +4,7 @@ FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
-RUN pip3 install joblib pythran
+RUN pip3 install joblib pythran pybind11
 RUN cp /usr/local/bin/verificarlo-f /usr/bin/gfortran
 
 RUN ln -sf $(which verificarlo) $(which x86_64-linux-gnu-gcc)
