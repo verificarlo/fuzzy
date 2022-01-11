@@ -1,36 +1,30 @@
-ARG VERIFICARLO_VERSION=v0.5.0
+ARG VERIFICARLO_VERSION=v0.6.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
-
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
 
 # Use IEEE mode for compiling with verificarlo
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 # Copy verificarlo's exclusion file for Python 3
-COPY docker/resources/numpy-verificarlo.patch /tmp/numpy-verificarlo.patch
 COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
-
-RUN  git config --global user.email "fake@mail.com" &&\
-     git config --global user.name "Anonymous Patcher" 
+COPY docker/resources/numpy-sanity-check.py /tmp/numpy-sanity-check.py
 
 # Build numpy from sources and link with the local BLAS and LAPACK
 RUN python3 -m pip install cython
-RUN cd /opt/build &&\
-    git clone -b v1.19.1 --depth=1 https://github.com/numpy/numpy.git &&\
-    cd /opt/build/numpy &&\
-    git checkout v1.19.1 &&\
-    git am /tmp/numpy-verificarlo.patch &&\
-    OPT="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative -O0" \
-    FOPT="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument --conservative -O0" \
-    NPY_BLAS_ORDER=BLAS NPY_LAPACK_ORDER=LAPACK \
-    python3 setup.py config --compiler=verificarlo --fcompiler=verificarlof build_clib \
-    --compiler=verificarlo --fcompiler=verificarlof build_ext \
-    --compiler=verificarlo --fcompiler=verificarlof build -j 4 install
+# Numpy links libraries with x86_64-linux-gnu-gcc
+
+RUN ln -sf $(which verificarlo) $(which x86_64-linux-gnu-gcc)
+
+RUN cd /opt/build/ &&\
+    wget https://github.com/numpy/numpy/releases/download/v1.22.0/numpy-1.22.0.tar.gz &&\
+    tar xvf numpy-1.22.0.tar.gz &&\
+    cd numpy-1.22.0 &&\
+    CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    python3 setup.py build -j $(nproc) --disable-optimization install
+
 
 # Smoked test for vectorization.
 # We should run the full numpy test suit in next versions
-RUN python3 -c "import numpy as np; x = np.array(range(4),dtype=np.float64); z=[i**2 for i in range(4)]; print(z, x**2); assert((x**2==z).all())"
+RUN python3 /tmp/numpy-sanity-check.py
 
 # Remove temporary files
 RUN rm -rf /opt/build/*

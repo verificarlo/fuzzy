@@ -1,8 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.5.0
+ARG VERIFICARLO_VERSION=v0.6.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
-
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
 
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
@@ -10,8 +7,9 @@ RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 RUN cd /opt/build &&\
   git clone https://github.com/scikit-learn/scikit-learn.git &&\
   cd scikit-learn &&\
-  git checkout 0.23.2 &&\
-  CFLAGS="--conservative -O0" python3 setup.py build -j 4 install
+  git checkout 1.0.2 &&\
+  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="--conservative -Wunused-command-line-argument"\
+  python3 setup.py build -j 4 install
 
 # Remove temporary files
 RUN rm -rf /opt/build/*

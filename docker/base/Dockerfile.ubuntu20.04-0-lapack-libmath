@@ -1,8 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.5.0
+ARG VERIFICARLO_VERSION=v0.6.0
 FROM verificarlo/verificarlo:${VERIFICARLO_VERSION}
-
-RUN cat /proc/cpuinfo | grep flags | uniq
-RUN  cat /proc/cpuinfo | grep "model name"  | uniq
 
 # Setup build dependencies
 RUN apt-get update -qqq &&\
@@ -51,8 +48,8 @@ RUN cd /opt/build/ &&\
     mkdir build &&\
     cd /opt/build/lapack-3.9.0/build &&\
     cmake FC=verificarlo-f -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=verificarlo-c -DCMAKE_Fortran_COMPILER=verificarlo-f \
-    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON -DCMAKE_C_FLAGS="--conservative -O0" -DCMAKE_Fortran_FLAGS="--conservative -O0"  .. &&\
-    make &&\
+    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON -DCMAKE_C_FLAGS="--conservative" -DCMAKE_Fortran_FLAGS="--conservative"  .. &&\
+    make -j &&\
     make install
 
 # Remove temporary files
