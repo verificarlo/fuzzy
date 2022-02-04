@@ -12,7 +12,10 @@ RUN cd /opt/build/ && \
     wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
     tar xvf Python-3.8.5.tgz && \
     cd Python-3.8.5 && \
-    CFLAGS="--conservative --exclude-file=/tmp/python-vfc-exclude.txt" ./configure --with-ensurepip=install &&\
+    LDFLAGS="--conservative --exclude-file=/tmp/python-vfc-exclude.txt" \
+    CFLAGS="--conservative --exclude-file=/tmp/python-vfc-exclude.txt" \
+    LDSHARED='verificarlo-c -shared' \
+    ./configure --with-ensurepip=install &&\
     make -j &&\
     make install &&\ 
     wget https://bootstrap.pypa.io/get-pip.py &&\
