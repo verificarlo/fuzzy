@@ -5,11 +5,14 @@ FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
 
 RUN cd /opt/build &&\
-  git clone https://github.com/scikit-learn/scikit-learn.git &&\
-  cd scikit-learn &&\
-  git checkout 1.0.2 &&\
-  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="--conservative -Wunused-command-line-argument"\
-  python3 setup.py build -j 4 install
+  wget https://github.com/scikit-learn/scikit-learn/archive/refs/tags/1.0.2.tar.gz &&\
+  tar xvf  1.0.2.tar.gz &&\
+  cd scikit-learn-1.0.2 &&\
+  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" \
+  CFLAGS="--conservative -Wunused-command-line-argument" \
+  LDFLAGS="--conservative -Wunused-command-line-argument" \
+  LDSHARED="verificarlo-c -shared" \
+  python3 -m pip install --verbose  . 
 
 # Remove temporary files
 RUN rm -rf /opt/build/*

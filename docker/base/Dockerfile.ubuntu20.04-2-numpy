@@ -10,15 +10,14 @@ COPY docker/resources/numpy-sanity-check.py /tmp/numpy-sanity-check.py
 
 # Build numpy from sources and link with the local BLAS and LAPACK
 RUN python3 -m pip install cython
-# Numpy links libraries with x86_64-linux-gnu-gcc
-
-RUN ln -sf $(which verificarlo) $(which x86_64-linux-gnu-gcc)
 
 RUN cd /opt/build/ &&\
     wget https://github.com/numpy/numpy/releases/download/v1.22.0/numpy-1.22.0.tar.gz &&\
     tar xvf numpy-1.22.0.tar.gz &&\
     cd numpy-1.22.0 &&\
-    CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" CFGLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" LDSHARED='verificarlo-c -shared' \
+    CFLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    LDFLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
     python3 setup.py build -j $(nproc) --disable-optimization install
 
 

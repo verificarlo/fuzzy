@@ -20,6 +20,7 @@ RUN patch $(which verificarlo) /tmp/verificarlo.patch
 ENV CC "verificarlo-c"
 ENV CXX "verificarlo-c++"
 ENV FC "verificarlo-f"
+ENV LDSHARED "verificarlo-c"
 
 # Load backend IEEE
 RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
