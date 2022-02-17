@@ -1,5 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.6.0
-FROM verificarlo/verificarlo:${VERIFICARLO_VERSION}
+ARG VERIFICARLO_VERSION=v0.7.x-interflop-call
+FROM yohanchatelain/verificarlo:${VERIFICARLO_VERSION}
 
 # Setup build dependencies
 RUN apt-get update -qqq &&\

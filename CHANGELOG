@@ -1,3 +1,11 @@
+# Unrealesed 
+
+## Changed
+    * Change mecanisme to introduce noise in libmath. Now it uses a direct call to the inexact function, allowing to perturb libmath results within RR mode.
+
+## Fixed
+    * l_gammaf_r test that failed due to uninitialized pointer value
+
 # [v0.6.0] 2022/01/07
 
 ## Changed

@@ -1,5 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.6.0
-FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack
+ARG VERIFICARLO_VERSION=v0.7.x-interflop-call
+FROM yohanchatelain/fuzzy:${VERIFICARLO_VERSION}-lapack
 
 # Use IEEE mode for compiling with verificarlo
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE

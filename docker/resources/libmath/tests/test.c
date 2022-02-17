@@ -40,9 +40,9 @@ void eval(char *argv[]) {
 #ifdef LGAMMA_R
 void eval(char *argv[]) {
   REAL x = atof(argv[1]);
-  int *sign;
+  int sign;
   for (int i = 0; i < N; i++) {
-    REAL res = FUNCTION(x, sign);
+    REAL res = FUNCTION(x, &sign);
     printf(FMT(x), res);
   }
 }

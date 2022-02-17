@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export VFC_BACKENDS="libinterflop_mca.so --mode=mca --precision-binary64=53 --precision-binary32=24"
+export VFC_BACKENDS="libinterflop_mca.so --mode=rr --precision-binary64=53 --precision-binary32=24"
 export LD_PRELOAD=$PWD/../libmath.so
 
 declare -A signature_a
@@ -45,51 +45,50 @@ function compile() {
 }
 
 function run() {
-    LD_PRELOAD=$LD_PRELOAD ./test $* > outputs
+    LD_PRELOAD=$LD_PRELOAD ./test $* >outputs
 }
 
 IFS=" "
 for TYPE in "${!type_a[@]}"; do
     FILE=data/"math-functions-${type_a[$TYPE]}-${signature_a[univar]}.txt"
-    while read -r FUNCTION POINT ; do
+    while read -r FUNCTION POINT; do
         echo "Evalue $FUNCTION on ${POINT}"
         compile $TYPE UNIVAR $FUNCTION
         run $POINT
         assert_noise
-    done < $FILE
+    done <$FILE
 done
 
 IFS=" "
 for TYPE in "${!type_a[@]}"; do
     FILE=data/"math-functions-${type_a[$TYPE]}-${signature_a[bivar]}.txt"
-    while read -r FUNCTION POINT1 POINT2 ; do
+    while read -r FUNCTION POINT1 POINT2; do
         echo "Evalue $FUNCTION on ${POINT}"
         compile $TYPE BIVAR $FUNCTION
         run $POINT1 $POINT2
         assert_noise
-    done < $FILE
+    done <$FILE
 done
 
 IFS=" "
 for TYPE in "${!type_a[@]}"; do
     FILE=data/"math-functions-${type_a[$TYPE]}-${signature_a[sincos]}.txt"
-    while read -r FUNCTION POINT ; do
+    while read -r FUNCTION POINT; do
         echo "Evalue $FUNCTION on ${POINT}"
         compile $TYPE SINCOS $FUNCTION
         run $POINT
         assert_noise
-    done < $FILE
+    done <$FILE
 done
 
 IFS=" "
 for TYPE in "${!type_a[@]}"; do
     FILE=data/"math-functions-${type_a[$TYPE]}-${signature_a[lgamma_r]}.txt"
     check_file_exist $FILE
-    while read -r FUNCTION POINT ; do
+    while read -r FUNCTION POINT; do
         echo "Evalue $FUNCTION on ${POINT}"
         compile $TYPE LGAMMA_R $FUNCTION
         run $POINT
         assert_noise
-    done < $FILE
+    done <$FILE
 done
-
