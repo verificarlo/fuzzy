@@ -1,6 +1,6 @@
 sqrtf 2
 cbrtf 3
-logf 2
+logf 2.1
 log10f 2
 log1pf 2
 log2f 3

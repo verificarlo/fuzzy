@@ -93,7 +93,7 @@ static void (*real_sincosf)(float dbl, float *sin, float *cos);
   TYPE NAME(TYPE x) {                                                          \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
     TYPE res = real_##NAME(x);                                                 \
-    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res);                  \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
     return res;                                                                \
   }
 
@@ -101,7 +101,7 @@ static void (*real_sincosf)(float dbl, float *sin, float *cos);
   TYPE NAME(int n, TYPE x) {                                                   \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
     TYPE res = real_##NAME(n, x);                                              \
-    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res);                  \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
     return res;                                                                \
   }
 
@@ -109,7 +109,7 @@ static void (*real_sincosf)(float dbl, float *sin, float *cos);
   TYPE NAME(TYPE x, int *s) {                                                  \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
     TYPE res = real_##NAME(x, s);                                              \
-    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res);                  \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
     return res;                                                                \
   }
 
@@ -117,15 +117,15 @@ static void (*real_sincosf)(float dbl, float *sin, float *cos);
   void NAME(TYPE x, TYPE *o1, TYPE *o2) {                                      \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
     real_##NAME(x, o1, o2);                                                    \
-    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), o1);                    \
-    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), o2);                    \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), o1, -1);                \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), o2, -1);                \
   }
 
 #define DEFINE_2_WRAPPER(NAME, TYPE)                                           \
   TYPE NAME(TYPE x, TYPE y) {                                                  \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
     TYPE res = real_##NAME(x, y);                                              \
-    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res);                  \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
     return res;                                                                \
   }
 

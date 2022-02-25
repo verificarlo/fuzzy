@@ -16,7 +16,7 @@ RUN cd /opt/build/ && \
     CFLAGS="--conservative --exclude-file=/tmp/python-vfc-exclude.txt" \
     LDSHARED='verificarlo-c -shared' \
     ./configure --with-ensurepip=install &&\
-    make -j &&\
+    make -j $(nproc) &&\
     make install &&\ 
     wget https://bootstrap.pypa.io/get-pip.py &&\
     python3 get-pip.py

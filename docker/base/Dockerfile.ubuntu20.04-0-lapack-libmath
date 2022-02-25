@@ -14,6 +14,7 @@ RUN apt-get update -qqq &&\
 # Copy verificarlo's exclusion file for Python 3
 COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
 COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
+COPY docker/resources/libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
 RUN patch $(which verificarlo) /tmp/verificarlo.patch
 
 # Setting compilers and linkers to use verificarlo
@@ -50,7 +51,7 @@ RUN cd /opt/build/ &&\
     cd /opt/build/lapack-3.9.0/build &&\
     cmake FC=verificarlo-f -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_COMPILER=verificarlo-c -DCMAKE_Fortran_COMPILER=verificarlo-f \
     -DCBLAS=ON -DBUILD_SHARED_LIBS=ON -DCMAKE_C_FLAGS="--conservative" -DCMAKE_Fortran_FLAGS="--conservative"  .. &&\
-    make -j &&\
+    make -j $(nproc) &&\
     make install
 
 # Remove temporary files
@@ -58,11 +59,13 @@ RUN rm -rf /opt/build/*
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
+ENV VFC_BACKENDS_LOGGER="False"
 ENV VFC_BACKENDS_SILENT_LOAD="True"
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 # Preloading the instrumented shared library
-ENV LD_PRELOAD="/opt/mca-libmath/libmath.so:/usr/local/lib/libblas.so:/usr/local/lib/libcblas.so"
+ARG FUZZY_LIBMATH_VERSION=standard
+RUN set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
 
 # Set bash shell as entrypoint
 ENTRYPOINT [ "/bin/bash"]
