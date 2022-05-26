@@ -1,6 +1,6 @@
 # Makefile for the instrumented shared library
 
-INCLUDE_DIR = /usr/lib/gcc/x86_64-linux-gnu/9/include/
+INCLUDE_DIR = /usr/lib/gcc/x86_64-linux-gnu/7/include/
 CC = verificarlo-c 
 TRACER_FLAGS = --tracer --tracer-debug-mode --tracer-level=temporary
 DEBUG_FLAGS = --save-temps --verbose -g

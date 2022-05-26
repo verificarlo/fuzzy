@@ -102,8 +102,8 @@ DEFINE_2_WRAPPER(powf, powq, float);
 // DEFINE_1_WRAPPER(exp10, exp10q, double);
 // DEFINE_1_WRAPPER(exp10f, exp10q, float);
 
-DEFINE_1_WRAPPER(exp2, exp2q, double);
-DEFINE_1_WRAPPER(exp2f, exp2q, float);
+/* DEFINE_1_WRAPPER(exp2, exp2q, double); */
+/* DEFINE_1_WRAPPER(exp2f, exp2q, float); */
 
 DEFINE_1_WRAPPER(expm1, expm1q, double);
 DEFINE_1_WRAPPER(expm1f, expm1q, float);

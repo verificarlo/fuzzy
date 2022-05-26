@@ -35,7 +35,7 @@ sample_profiling_default = 10**6
 excluded_functions = {
     'ref': [],
     'standard': [],
-    'quad': ['exp10', 'exp10f', 'lgammaf_r', 'lgamma_r'],
+    'quad': ['exp10', 'exp10f', 'lgammaf_r', 'lgamma_r', 'exp2', 'exp2f'],
     'mpfr': []
 }
 
