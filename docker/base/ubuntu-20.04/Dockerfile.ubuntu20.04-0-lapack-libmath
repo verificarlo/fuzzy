@@ -1,4 +1,4 @@
-ARG VERIFICARLO_VERSION=v0.7.x-interflop-call
+ARG VERIFICARLO_VERSION=v0.7.2
 FROM yohanchatelain/verificarlo:${VERIFICARLO_VERSION}
 
 # Setup build dependencies
@@ -62,7 +62,7 @@ RUN rm -rf /opt/build/*
 ENV CC "verificarlo-c"
 ENV VFC_BACKENDS_LOGGER="False"
 ENV VFC_BACKENDS_SILENT_LOAD="True"
-RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 # Preloading the instrumented shared library
 ARG FUZZY_LIBMATH_VERSION=standard

@@ -1,0 +1,55 @@
+ARG VERIFICARLO_VERSION=v0.7.0-ubuntu18.04
+FROM yohanchatelain/verificarlo:${VERIFICARLO_VERSION} AS builder
+
+# Setup build dependencies
+RUN apt-get update -qqq &&\
+    apt-get install -y --no-install-recommends -qqq \
+    make build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev wget \
+    curl llvm libncurses5-dev  libncursesw5-dev \
+    xz-utils tk-dev wget fort77 gfortran cmake lzma-dev liblzma-dev \
+    libmpfr6 libmpfr-dev &&\
+    rm -rf /var/lib/apt/lists/ &&\
+    mkdir -p /opt/build/
+
+# Copy verificarlo's exclusion file for Python 3
+COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
+COPY docker/resources/verificarlo.patch /tmp/verificarlo.patch
+COPY docker/resources/libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
+RUN patch $(which verificarlo) /tmp/verificarlo.patch
+
+# Setting compilers and linkers to use verificarlo
+ENV CC "verificarlo-c"
+ENV CXX "verificarlo-c++"
+ENV FC "verificarlo-f"
+ENV LDSHARED "verificarlo-c"
+
+# Load backend IEEE
+RUN mkdir -p /opt/ && touch /opt/vfc-backends.txt
+ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+
+# Create instrumented shared mathematical library
+COPY docker/resources/libmath/ /opt/mca-libmath/
+
+#FROM yohanchatelain/verificarlo:${VERIFICARLO_VERSION} AS test
+
+RUN cd /opt/mca-libmath/ &&\
+    make CONSERVATIVE=True &&\
+    make test
+
+# Remove temporary files
+RUN rm -rf /opt/build/*
+
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo-c"
+ENV VFC_BACKENDS_LOGGER="False"
+ENV VFC_BACKENDS_SILENT_LOAD="True"
+RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+# Preloading the instrumented shared library
+ARG FUZZY_LIBMATH_VERSION=standard
+RUN set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
+
+# Set bash shell as entrypoint
+ENTRYPOINT [ "/bin/bash"]

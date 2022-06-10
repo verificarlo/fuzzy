@@ -1,0 +1,34 @@
+ARG VERIFICARLO_VERSION=v0.7.2
+FROM yohanchatelain/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
+
+# Use IEEE mode for compiling with verificarlo
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+
+# Copy verificarlo's exclusion file for Python 3
+COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
+COPY docker/resources/numpy-sanity-check.py /tmp/numpy-sanity-check.py
+
+# Build numpy from sources and link with the local BLAS and LAPACK
+RUN python3 -m pip install cython
+
+RUN cd /opt/build/ &&\
+    wget https://github.com/numpy/numpy/releases/download/v1.22.0/numpy-1.22.0.tar.gz &&\
+    tar xvf numpy-1.22.0.tar.gz &&\
+    cd numpy-1.22.0 &&\
+    CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" LDSHARED='verificarlo-c -shared' \
+    CFLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    LDFLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    python3 setup.py build -j $(nproc) --disable-optimization install
+
+
+# Smoked test for vectorization.
+# We should run the full numpy test suit in next versions
+RUN python3 /tmp/numpy-sanity-check.py
+
+# Remove temporary files
+RUN rm -rf /opt/build/*
+
+# Restore default MCA mode
+RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+ENTRYPOINT [ "/bin/bash"]

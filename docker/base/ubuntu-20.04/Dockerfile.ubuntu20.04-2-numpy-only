@@ -1,5 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.7.x-interflop-call
-FROM yohanchatelain/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
+ARG VERIFICARLO_VERSION=v0.7.2
+FROM yohanchatelain/fuzzy:${VERIFICARLO_VERSION}-lapack
 
 # Use IEEE mode for compiling with verificarlo
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
@@ -9,7 +9,7 @@ COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
 COPY docker/resources/numpy-sanity-check.py /tmp/numpy-sanity-check.py
 
 # Build numpy from sources and link with the local BLAS and LAPACK
-RUN python3 -m pip install cython
+RUN python3 -m pip install --upgrade pip && python3 -m pip install --ignore-installed cython==0.29.24
 
 RUN cd /opt/build/ &&\
     wget https://github.com/numpy/numpy/releases/download/v1.22.0/numpy-1.22.0.tar.gz &&\
@@ -29,6 +29,6 @@ RUN python3 /tmp/numpy-sanity-check.py
 RUN rm -rf /opt/build/*
 
 # Restore default MCA mode
-RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 ENTRYPOINT [ "/bin/bash"]
