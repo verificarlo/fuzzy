@@ -96,7 +96,7 @@ jobs:
 
           docker build ./ -t ${{ matrix.DOCKER_IMAGE }} \
                           -f ${{ matrix.DOCKER_FILE }} \
-                          --build-arg VERIFICARLO_VERSION=v0.7.x-interflop-call
+                          --build-arg VERIFICARLO_VERSION=v0.8.0
 
           docker save ${{ matrix.DOCKER_IMAGE }} -o /tmp/${{ matrix.DOCKER_TO }}.tar
 
