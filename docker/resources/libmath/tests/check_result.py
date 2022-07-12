@@ -4,12 +4,15 @@ import numpy as np
 import sys
 
 
+def float_handler(x):
+    try:
+        return float(x)
+    except ValueError:
+        return float.fromhex(x)
+
+
 def load_value(filename):
-    for l in open(filename):
-        print(l)
-        print(l.strip())
-        print(float.fromhex(l.strip()))
-    value = [float.fromhex(l.strip()) for l in open(filename)]
+    value = [float_handler(l.strip()) for l in open(filename)]
     return value
 
 
