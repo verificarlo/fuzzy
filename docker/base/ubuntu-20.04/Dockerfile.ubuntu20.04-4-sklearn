@@ -1,5 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.7.2
-FROM yohanchatelain/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
+ARG VERIFICARLO_VERSION=v0.8.0
+FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
 
 # Load backend IEEE
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE

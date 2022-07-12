@@ -1,5 +1,5 @@
-ARG VERIFICARLO_VERSION=v0.7.0-ubuntu18.04
-FROM yohanchatelain/verificarlo:${VERIFICARLO_VERSION} AS builder
+ARG VERIFICARLO_VERSION=v0.8.0-ubuntu18.04
+FROM verificarlo/verificarlo:${VERIFICARLO_VERSION} AS builder
 
 # Setup build dependencies
 RUN apt-get update -qqq &&\
