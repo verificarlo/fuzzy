@@ -15,8 +15,9 @@ def float_handler(x):
 
 
 def load_value(filename):
-    value = [float_handler(l.strip()) for l in open(filename)]
-    return value
+    value = [[float_handler(x) for x in l.strip().split()]
+             for l in open(filename)]
+    return np.array(value)
 
 
 def check_std(value):
