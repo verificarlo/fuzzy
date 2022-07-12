@@ -5,7 +5,7 @@ import sys
 
 
 def load_value(filename):
-    value = np.loadtxt(filename, dtype=np.float64)
+    value = [float.fromhex(l.strip()) for l in open(filename)]
     return value
 
 
