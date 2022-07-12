@@ -18,7 +18,7 @@ jobs:
         include:
           - NAME: Lapack + Libmath
             DOCKER_FROM: ""
-            DOCKER_TO: fuzzy_v0.8.0-interflop-call-lapack
+            DOCKER_TO: fuzzy_v0.8.0-lapack
             DOCKER_IMAGE: verificarlo/fuzzy:v0.8.0
             DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-0-lapack-libmath
 
