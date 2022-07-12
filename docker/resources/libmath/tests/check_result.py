@@ -5,6 +5,10 @@ import sys
 
 
 def load_value(filename):
+    for l in open(filename):
+        print(l)
+        print(l.strip())
+        print(float.fromhex(l.strip()))
     value = [float.fromhex(l.strip()) for l in open(filename)]
     return value
 
