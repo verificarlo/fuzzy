@@ -1,6 +1,5 @@
 #!/bin/env python3
 
-from msilib.schema import Error
 import numpy as np
 import sys
 
@@ -11,7 +10,7 @@ def float_handler(x):
     except ValueError:
         return float.fromhex(x)
     except:
-        raise Error(x)
+        raise Exception(x)
 
 
 def load_value(filename):
