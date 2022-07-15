@@ -2,7 +2,7 @@
 
 ## Changed
     * Change mecanisme to introduce noise in libmath. Now it uses a direct call to the inexact function, allowing to perturb libmath results within RR mode.
-    * Change verificarlo version to compile fuzzy images [v0.6.0 -> v0.7.0]
+    * Change verificarlo version to compile fuzzy images [v0.6.0 -> v0.8.0]
 ## Fixed
     * l_gammaf_r test that failed due to uninitialized pointer value
 
