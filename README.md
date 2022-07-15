@@ -1,4 +1,4 @@
-# Fuzzy
+# Fuzzy v0.8.0
 
 [![DOI](https://zenodo.org/badge/218554957.svg)](https://zenodo.org/badge/latestdoi/218554957)
 [![Build Fuzzy Environments](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml/badge.svg?branch=master)](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml)
@@ -89,6 +89,43 @@ prior to performing your experiments! *Fuzzy* should print a log message to the
 terminal when you run your commands, including the configuration, so you can verify
 that the parameters were properly specified.
 
+#### Fuzzy-libmath
+
+Since version v0.8.0, fuzzy-libmath comes with three modes (standard, quad, and
+ mpfr). Internally, the fuzzy-libmath computes the actual result of the math
+function using the standard library of the OS and then perturbs the output by
+adding MCA noise. Since the accuracy of the `libm` used can vary from one
+version to another (see this
+[article](https://hal.inria.fr/hal-03141101v2/document)), one
+can use higher precision to ensure accurate intermediate computations.
+These modes specify the library used:
+- `standard`: uses the standard libm provided by the OS. (fastest)
+- `quad`: uses the libquadmath.so library
+- `mpfr`: uses the MPFR library with 113 bits of precision, equivalent to
+  the binary128 precision (slowest)
+
+Note that a higher precision implies a larger slowdown. The `standard` mode is
+the fastest and can be used if one does not require high accuracy. To switch
+from one version to another, please use the `set-fuzzy-libmath` tool already
+installed in the docker image as follow:
+
+```
+usage: set-fuzzy-libmath [-h] --version {no-fuzzy,standard,quad,mpfr}
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version {no-fuzzy,standard,quad,mpfr}
+
+Fuzzy libmath version to use:
+    - no-fuzzy: Disable fuzzy libmath
+    - standard: Use the standard libmath available on the system.
+                Fastest instrumentation but possibly not accurate
+    - quad:     Use the libquadmath for intermediate results.
+                Slower than the standard version but more accurate.
+    - mpfr:     Use the mpfr library for intermediate results.
+                Slowest version but gives the correct rounding.
+```
+
 #### Using Fuzzy in Multi-stage builds
 Fuzzy provides a set of recompiled shared objects and tools that facilitate adding
 Monte Carlo Arithmetic to tools. If you've got a Docker container which relies on
@@ -103,13 +140,20 @@ FROM verificarlo/fuzzy:latest as fuzzy
 FROM user/image:version
 
 # Copy libmath fuzzy environment from fuzzy image, for example
-RUN mkdir -p /opt/mca-libmath
-COPY --from=fuzzy /opt/mca-libmath/libmath.so /opt/mca-libmath/
-COPY --from=fuzzy /usr/local/lib/libinterflop* /usr/local/lib/
+RUN mkdir -p /opt/mca-libmath/{standard,quad,mpfr}
+COPY --from=${2} /opt/mca-libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
+COPY --from=${2} /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/standard/libmath.so
+COPY --from=${2} /opt/mca-libmath/quad/libmath.so /opt/mca-libmath/quad/libmath.so
+COPY --from=${2} /opt/mca-libmath/mpfr/libmath.so /opt/mca-libmath/mpfr/libmath.so
+COPY --from=${2} /usr/local/lib/libinterflop* /usr/local/lib/
 
 # If you will also want to recompile more libraries with verificarlo, add these lines
 COPY --from=fuzzy /usr/local/bin/verificarlo* /usr/local/bin/
 COPY --from=fuzzy /usr/local/include/* /usr/local/include/
+
+# Preloading the instrumented shared library
+ARG FUZZY_LIBMATH_VERSION=standard
+RUN set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
 
 ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=mca'
 ```
