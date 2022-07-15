@@ -1,0 +1,40 @@
+ARG VERIFICARLO_VERSION=v0.8.0
+FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-numpy
+
+# Load backend IEEE
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+
+# Copy sanity check for SciPy
+COPY docker/resources/numpy-sanity-check.py /tmp/scipy-sanity-check.py
+
+# Install SciPy dependencies
+RUN pip3 install joblib pythran pybind11
+# Replace gfortran with verificarlo-f
+RUN cp /usr/local/bin/verificarlo-f /usr/bin/gfortran
+
+# Remove debug flag which makes flag crash
+RUN sed -i "294s/.*/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options/" $(which verificarlo)
+
+RUN cd /opt/build/ &&\
+  wget https://github.com/scipy/scipy/releases/download/v1.7.3/scipy-1.7.3.tar.gz &&\
+  tar xvf scipy-1.7.3.tar.gz &&\
+  cd scipy-1.7.3 &&\
+  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" LDSHARED='verificarlo-c -shared' \
+  CFLAGS="--conservative -Wunused-command-line-argument" \
+  LDFLAGS="--conservative -Wunused-command-line-argument" \
+  python3 setup.py build --disable-optimization -j $(nproc) install
+
+# Restore original verificarlo
+RUN sed -i "294s/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options//" $(which verificarlo)
+
+# Sanity check
+RUN python3 /tmp/scipy-sanity-check.py
+
+# Remove temporary files
+RUN rm -rf /opt/build/*
+
+# Restore default behavior for verificarlo's CC
+ENV CC "verificarlo-c"
+RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+ENTRYPOINT [ "/bin/bash"]

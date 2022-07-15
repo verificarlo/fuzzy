@@ -1,4 +1,4 @@
-ARG VERIFICARLO_VERSION=v0.6.0
+ARG VERIFICARLO_VERSION=v0.8.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
 
 # Use IEEE mode for compiling with verificarlo
@@ -29,6 +29,6 @@ RUN python3 /tmp/numpy-sanity-check.py
 RUN rm -rf /opt/build/*
 
 # Restore default MCA mode
-RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 ENTRYPOINT [ "/bin/bash"]

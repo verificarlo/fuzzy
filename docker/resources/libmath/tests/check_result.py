@@ -4,9 +4,19 @@ import numpy as np
 import sys
 
 
+def float_handler(x):
+    try:
+        return float(x)
+    except ValueError:
+        return float.fromhex(x)
+    except:
+        raise Exception(x)
+
+
 def load_value(filename):
-    value = np.loadtxt(filename, dtype=np.float64)
-    return value
+    value = [[float_handler(x) for x in l.strip().split()]
+             for l in open(filename)]
+    return np.array(value)
 
 
 def check_std(value):

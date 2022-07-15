@@ -18,33 +18,33 @@ jobs:
         include:
           - NAME: Lapack + Libmath
             DOCKER_FROM: ""
-            DOCKER_TO: fuzzy_v0.6.0-lapack
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.6.0-lapack
-            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-0-lapack-libmath
+            DOCKER_TO: fuzzy_v0.8.0-lapack
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.8.0-lapack
+            DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-0-lapack-libmath
 
           - NAME: Python
-            DOCKER_FROM: fuzzy_v0.6.0-lapack
-            DOCKER_TO: fuzzy_v0.6.0-lapack-python3.8.5
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.6.0-lapack-python3.8.5
-            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-1-python
+            DOCKER_FROM: fuzzy_v0.8.0-lapack
+            DOCKER_TO: fuzzy_v0.8.0-lapack-python3.8.5
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.8.0-lapack-python3.8.5
+            DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-1-python
 
           - NAME: Numpy
-            DOCKER_FROM: fuzzy_v0.6.0-lapack-python3.8.5
-            DOCKER_TO: fuzzy_v0.6.0-lapack-python3.8.5-numpy
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.6.0-lapack-python3.8.5-numpy
-            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-2-numpy
+            DOCKER_FROM: fuzzy_v0.8.0-lapack-python3.8.5
+            DOCKER_TO: fuzzy_v0.8.0-lapack-python3.8.5-numpy
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.8.0-lapack-python3.8.5-numpy
+            DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-2-numpy
 
           - NAME: Scipy
-            DOCKER_FROM: fuzzy_v0.6.0-lapack-python3.8.5-numpy
-            DOCKER_TO: fuzzy_v0.6.0-lapack-python3.8.5-numpy-scipy
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.6.0-lapack-python3.8.5-numpy-scipy
-            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-3-scipy
+            DOCKER_FROM: fuzzy_v0.8.0-lapack-python3.8.5-numpy
+            DOCKER_TO: fuzzy_v0.8.0-lapack-python3.8.5-numpy-scipy
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.8.0-lapack-python3.8.5-numpy-scipy
+            DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-3-scipy
 
           - NAME: Scikit-Learn
-            DOCKER_FROM: fuzzy_v0.6.0-lapack-python3.8.5-numpy-scipy
-            DOCKER_TO: fuzzy_v0.6.0-lapack-python3.8.5-numpy-scipy-sklearn
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.6.0-lapack-python3.8.5-numpy-scipy-sklearn
-            DOCKER_FILE: ./docker/base/Dockerfile.ubuntu20.04-4-sklearn
+            DOCKER_FROM: fuzzy_v0.8.0-lapack-python3.8.5-numpy-scipy
+            DOCKER_TO: fuzzy_v0.8.0-lapack-python3.8.5-numpy-scipy-sklearn
+            DOCKER_IMAGE: verificarlo/fuzzy:v0.8.0-lapack-python3.8.5-numpy-scipy-sklearn
+            DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-4-sklearn
 
     name: ${{ matrix.NAME }}
     steps:
@@ -96,7 +96,7 @@ jobs:
 
           docker build ./ -t ${{ matrix.DOCKER_IMAGE }} \
                           -f ${{ matrix.DOCKER_FILE }} \
-                          --build-arg VERIFICARLO_VERSION=v0.6.0
+                          --build-arg VERIFICARLO_VERSION=v0.8.0
 
           docker save ${{ matrix.DOCKER_IMAGE }} -o /tmp/${{ matrix.DOCKER_TO }}.tar
 
@@ -117,9 +117,9 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       RUN_IF_CHANGED: docker
-      DOCKER_FROM: fuzzy_v0.6.0-lapack-python3.8.5-numpy-scipy-sklearn
+      DOCKER_FROM: fuzzy_v0.8.0-lapack-python3.8.5-numpy-scipy-sklearn
       DOCKER_IMAGE: verificarlo/fuzzy
-      DOCKER_FROM_TAG: v0.6.0-lapack-python3.8.5-numpy-scipy-sklearn
+      DOCKER_FROM_TAG: v0.8.0-lapack-python3.8.5-numpy-scipy-sklearn
 
     steps:
       - name: Checkout repository

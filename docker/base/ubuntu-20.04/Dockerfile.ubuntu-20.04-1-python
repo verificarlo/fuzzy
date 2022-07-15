@@ -1,4 +1,4 @@
-ARG VERIFICARLO_VERSION=v0.6.0
+ARG VERIFICARLO_VERSION=v0.8.0
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack
 
 # Use IEEE mode for compiling with verificarlo
@@ -16,7 +16,7 @@ RUN cd /opt/build/ && \
     CFLAGS="--conservative --exclude-file=/tmp/python-vfc-exclude.txt" \
     LDSHARED='verificarlo-c -shared' \
     ./configure --with-ensurepip=install &&\
-    make -j &&\
+    make -j $(nproc) &&\
     make install &&\ 
     wget https://bootstrap.pypa.io/get-pip.py &&\
     python3 get-pip.py
@@ -25,7 +25,7 @@ RUN cd /opt/build/ && \
 RUN rm -rf /opt/build/*
 
 # Restore default MCA mode
-RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 # Set entrypoint
 ENTRYPOINT [ "/bin/bash"]

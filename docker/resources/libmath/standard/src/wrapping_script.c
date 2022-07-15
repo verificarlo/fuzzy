@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
+#include <interflop.h>
 #include <stdio.h>
 //#include <math.h>
 
@@ -86,37 +87,46 @@ static void (*real_sincosf)(float dbl, float *sin, float *cos);
 // Override
 
 #define ZERO(TYPE) _Generic(TYPE, float : 0.0f, double : 0.0)
+#define GET_FTYPE(TYPE) _Generic(TYPE, float : FFLOAT, double : FDOUBLE)
 
-#define DEFINE_1_WRAPPER(NAME, TYPE)                                           \
-  TYPE NAME(TYPE x) {                                                          \
-    real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
-    return real_##NAME(x) + ZERO(x);                                           \
+#define DEFINE_1_WRAPPER(NAME, TYPE)					\
+  TYPE NAME(TYPE x) {							\
+    real_##NAME = dlsym(RTLD_NEXT, #NAME);				\
+    TYPE res = real_##NAME(x);						\
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);	\
+    return res;								\
   }
 
 #define DEFINE_1i_1_WRAPPER(NAME, TYPE)                                        \
   TYPE NAME(int n, TYPE x) {                                                   \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
-    return real_##NAME(n, x) + ZERO(x);                                        \
+    TYPE res = real_##NAME(n, x);                                              \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
+    return res;                                                                \
   }
 
 #define DEFINE_1_1p_WRAPPER(NAME, TYPE)                                        \
   TYPE NAME(TYPE x, int *s) {                                                  \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
-    return real_##NAME(x, s) + ZERO(x);                                        \
+    TYPE res = real_##NAME(x, s);                                              \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
+    return res;                                                                \
   }
 
 #define DEFINE_1_2p_WRAPPER(NAME, TYPE)                                        \
   void NAME(TYPE x, TYPE *o1, TYPE *o2) {                                      \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
     real_##NAME(x, o1, o2);                                                    \
-    *o1 += ZERO(x);                                                            \
-    *o2 += ZERO(x);                                                            \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), o1, -1);                \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), o2, -1);                \
   }
 
 #define DEFINE_2_WRAPPER(NAME, TYPE)                                           \
   TYPE NAME(TYPE x, TYPE y) {                                                  \
     real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
-    return real_##NAME(x, y) + ZERO(x);                                        \
+    TYPE res = real_##NAME(x, y);                                              \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
+    return res;                                                                \
   }
 
 DEFINE_1_WRAPPER(sqrt, double);
