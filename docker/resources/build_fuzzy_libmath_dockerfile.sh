@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DOCKERFILE=Dockerfile.mcalibmath
-FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v0.6.0-lapack
+FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v0.8.0-lapack
 
 generate_docker() {
 
@@ -9,14 +9,22 @@ generate_docker() {
 # Base image
 FROM ${1}
 
-# Copy fuzzy environment from fuzzy image
-RUN mkdir -p /opt/mca-libmath
-COPY --from=${2} /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/
+RUN mkdir -p /opt/mca-libmath/{standard,quad,mpfr} 
+COPY --from=${2} /opt/mca-libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
+COPY --from=${2} /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/standard/libmath.so
+COPY --from=${2} /opt/mca-libmath/quad/libmath.so /opt/mca-libmath/quad/libmath.so
+COPY --from=${2} /opt/mca-libmath/mpfr/libmath.so /opt/mca-libmath/mpfr/libmath.so
 COPY --from=${2} /usr/local/lib/libinterflop* /usr/local/lib/
 
-# Set environment variables
-ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=mca'
-ENV LD_PRELOAD '/opt/mca-libmath/standard/libmath.so'
+# If you will also want to recompile more libraries with verificarlo, add these lines
+COPY --from=${2} /usr/local/bin/verificarlo* /usr/local/bin/
+COPY --from=${2} /usr/local/include/* /usr/local/include/
+
+# Preloading the instrumented shared library
+ARG FUZZY_LIBMATH_VERSION=standard
+RUN set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
+
+ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=rr'
 HERE
 
 }
@@ -30,6 +38,7 @@ if [[ $# < 2 ]]; then
     echo "          <DOCKER_IMAGE>: Name of the base docker image to build"
     echo "          <TAG>:          Tag of the new image to build"
     echo "          [FUZZY_IMAGE]:  Name of the fuzzy image to copy from (optional)"
+    echo "                          Requires a fuzzy version >= 0.8.0"
     exit 1
 elif [[ $# == 2 ]]; then
     BASE_IMAGE=$1
