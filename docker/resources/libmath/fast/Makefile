@@ -1,10 +1,10 @@
 # Makefile for the instrumented shared library
 
-CC = verificarlo-c 
+CC = gcc 
 TRACER_FLAGS = --tracer --tracer-debug-mode --tracer-level=temporary
-DEBUG_FLAGS = --save-temps --verbose -g
-CFLAGS = -Wall -fPIC --verbose  # C flags
-LDFLAGS = -shared -ldl # linking flags
+DEBUG_FLAGS = --save-temps -g
+CFLAGS = -Wall -fPIC  # C flags
+LDFLAGS = -shared # linking flags
 LIBS= -ldl
 RM = rm -f 
 
@@ -14,17 +14,14 @@ SRCS = src/wrapping_script.c  # source files
 OBJS = $(SRCS:.c=.o)
 ROOT = $(PWD)
 
-ifdef CONSERVATIVE
-CFLAGS += --conservative
-endif
 
 .PHONY: tracer
 
 $(TARGET_LIB): $(OBJS)
-	$(CC) ${LDFLAGS} ${CFLAGS} ${LIBS} -o $@ $^
+	$(CC) ${LDFLAGS} ${CFLAGS} -o $@ $^ ${LIBS} 
 
 tracer:
-	$(CC) ${TRACER_FLAGS} ${CFLAGS} ${LDFLAGS} ${LIBS} -o ${TARGET_LIB} $(SRCS)
+	$(CC) ${TRACER_FLAGS} ${CFLAGS} ${LDFLAGS} -o ${TARGET_LIB} $(SRCS) ${LIBS}
 
 clean:
 	-${RM} ${TARGET_LIB} ${OBJS} $(SRCS:.c=.d) .vfcwrapper*
