@@ -98,8 +98,12 @@ adding MCA noise. Since the accuracy of the `libm` used can vary from one
 version to another (see this
 [article](https://hal.inria.fr/hal-03141101v2/document)), one
 can use higher precision to ensure accurate intermediate computations.
+A new mode called `fast` was introduced in version v0.9.1 that is equivalent 
+to a MCA noise with a fixed virtual precision (t=24 for binary24, t=53 for binary64)
+that cannot be changed. 
 These modes specify the library used:
-- `standard`: uses the standard libm provided by the OS. (fastest)
+- `fast`: uses the standard libm provided by the OS with a virtual precision fixed to the last bit (fastest)
+- `standard`: uses the standard libm provided by the OS
 - `quad`: uses the libquadmath.so library
 - `mpfr`: uses the MPFR library with 113 bits of precision, equivalent to
   the binary128 precision (slowest)
@@ -117,13 +121,16 @@ optional arguments:
   --version {no-fuzzy,standard,quad,mpfr}
 
 Fuzzy libmath version to use:
-    - no-fuzzy: Disable fuzzy libmath
-    - standard: Use the standard libmath available on the system.
-                Fastest instrumentation but possibly not accurate
-    - quad:     Use the libquadmath for intermediate results.
-                Slower than the standard version but more accurate.
-    - mpfr:     Use the mpfr library for intermediate results.
-                Slowest version but gives the correct rounding.
+        - no-fuzzy: Disable fuzzy libmath
+        - fast:     Use the standard libmath available on the system.
+                    Not possible to modify the virtual precision!
+                    Fastest instrumentation but possibly not accurate
+        - standard: Use the standard libmath available on the system.
+                    Fast instrumentation but possibly not accurate
+        - quad:     Use the libquadmath for intermediate results.
+                    Slower than the standard version but more accurate.
+        - mpfr:     Use the mpfr library for intermediate results.
+                    Slowest version but gives the correct rounding.
 ```
 
 #### Using Fuzzy in Multi-stage builds
@@ -140,8 +147,9 @@ FROM verificarlo/fuzzy:latest as fuzzy
 FROM user/image:version
 
 # Copy libmath fuzzy environment from fuzzy image, for example
-RUN mkdir -p /opt/mca-libmath/{standard,quad,mpfr}
+RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr}
 COPY --from=${2} /opt/mca-libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
+COPY --from=${2} /opt/mca-libmath/fast/libmath.so /opt/mca-libmath/fast/libmath.so
 COPY --from=${2} /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/standard/libmath.so
 COPY --from=${2} /opt/mca-libmath/quad/libmath.so /opt/mca-libmath/quad/libmath.so
 COPY --from=${2} /opt/mca-libmath/mpfr/libmath.so /opt/mca-libmath/mpfr/libmath.so
