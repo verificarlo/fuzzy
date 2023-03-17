@@ -24,7 +24,7 @@ class Types(Enum):
 
 
 gcc = 'gcc'
-libraries = ['ref', 'standard', 'quad', 'mpfr']
+libraries = ['ref', 'fast', 'standard', 'quad', 'mpfr']
 outputs_filename = 'outputs'
 perf_filename = ''
 check_noise_cmd = f"python3 check_result.py {outputs_filename}"
@@ -34,6 +34,7 @@ sample_profiling_default = 10**6
 
 excluded_functions = {
     'ref': [],
+    'fast': [],
     'standard': [],
     'quad': ['exp10', 'exp10f', 'lgammaf_r', 'lgamma_r', 'exp2', 'exp2f'],
     'mpfr': []

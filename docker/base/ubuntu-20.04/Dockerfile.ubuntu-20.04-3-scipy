@@ -1,4 +1,4 @@
-ARG VERIFICARLO_VERSION=v0.8.0
+ARG VERIFICARLO_VERSION=v0.9.1
 FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy
 
 # Load backend IEEE
@@ -13,7 +13,7 @@ RUN pip3 install joblib pythran pybind11
 RUN cp /usr/local/bin/verificarlo-f /usr/bin/gfortran
 
 # Remove debug flag which makes flag crash
-RUN sed -i "294s/.*/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options/" $(which verificarlo)
+RUN sed -i "302s/.*/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options/" $(which verificarlo)
 
 RUN cd /opt/build/ &&\
   wget https://github.com/scipy/scipy/releases/download/v1.7.3/scipy-1.7.3.tar.gz &&\
@@ -25,7 +25,7 @@ RUN cd /opt/build/ &&\
   python3 setup.py build --disable-optimization -j $(nproc) install
 
 # Restore original verificarlo
-RUN sed -i "294s/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options//" $(which verificarlo)
+RUN sed -i "302s/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options//" $(which verificarlo)
 
 # Sanity check
 RUN python3 /tmp/scipy-sanity-check.py

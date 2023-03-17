@@ -9,6 +9,7 @@ fuzzy_libmath_root = '/opt/mca-libmath'
 
 versions = [
     'no-fuzzy',
+    'fast',
     'standard',
     'quad',
     'mpfr'
@@ -19,7 +20,7 @@ libmath_so = 'libmath.so'
 
 def switch_version(version):
     try:
-        with open(ld_preload_file) as fi:
+        with open(ld_preload_file, encoding='utf-8') as fi:
             current_so = fi.readline().strip().split()
     except FileNotFoundError:
         current_so = []
@@ -32,16 +33,19 @@ def switch_version(version):
 
     to_write = " ".join(new_so)
 
-    with open(ld_preload_file, "w") as fo:
+    with open(ld_preload_file, "w", encoding='utf-8') as fo:
         fo.write(to_write)
 
 
 def parse_args():
-    help_msg = f'''\
+    help_msg = '''\
     Fuzzy libmath version to use:
         - no-fuzzy: Disable fuzzy libmath
-        - standard: Use the standard libmath available on the system.
+        - fast:     Use the standard libmath available on the system.
+                    Not possible to modify the virtual precision!
                     Fastest instrumentation but possibly not accurate
+        - standard: Use the standard libmath available on the system.
+                    Fast instrumentation but possibly not accurate
         - quad:     Use the libquadmath for intermediate results.
                     Slower than the standard version but more accurate.
         - mpfr:     Use the mpfr library for intermediate results.
@@ -57,6 +61,10 @@ def parse_args():
     return args
 
 
-if '__main__' == __name__:
+def main():
     args = parse_args()
     switch_version(args.version)
+
+
+if '__main__' == __name__:
+    main()
