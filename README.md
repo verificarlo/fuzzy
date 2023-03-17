@@ -1,4 +1,4 @@
-# Fuzzy v0.8.0
+# Fuzzy v0.9.1
 
 [![DOI](https://zenodo.org/badge/218554957.svg)](https://zenodo.org/badge/latestdoi/218554957)
 [![Build Fuzzy Environments](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml/badge.svg?branch=master)](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml)
