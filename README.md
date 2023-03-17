@@ -99,7 +99,7 @@ version to another (see this
 [article](https://hal.inria.fr/hal-03141101v2/document)), one
 can use higher precision to ensure accurate intermediate computations.
 A new mode called `fast` was introduced in version v0.9.1 that is equivalent 
-to a MCA noise with a fixed virtual precision (t=24 for binary24, t=53 for binary64)
+to a MCA noise with a fixed virtual precision (t=24 for binary32, t=53 for binary64)
 that cannot be changed. 
 These modes specify the library used:
 - `fast`: uses the standard libm provided by the OS with a virtual precision fixed to the last bit (fastest)
