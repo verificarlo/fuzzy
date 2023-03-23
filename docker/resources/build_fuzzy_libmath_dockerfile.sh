@@ -22,8 +22,7 @@ COPY --from=${2} /usr/local/bin/verificarlo* /usr/local/bin/
 COPY --from=${2} /usr/local/include/* /usr/local/include/
 
 # Preloading the instrumented shared library
-ARG FUZZY_LIBMATH_VERSION=standard
-RUN set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
+RUN set-fuzzy-libmath --version=standard
 
 ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=rr'
 HERE
@@ -51,6 +50,6 @@ elif [[ $# == 3 ]]; then
     FUZZY_IMAGE=$3
 fi
 
-echo "Build fuzzy-libmath (from ${FUZZY_IMAGE}) for ${BASEIMAGE} as ${TAG}"
-generate_docker $BASEIMAGE $FUZZY_IMAGE
-build_docker $TAG
+echo "Build fuzzy-libmath (from ${FUZZY_IMAGE}) for ${BASE_IMAGE} as ${TAG}"
+generate_docker $BASE_IMAGE $FUZZY_IMAGE
+build_docker $TAG 
