@@ -1,8 +1,6 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
-#include <interflop.h>
 #include <stdio.h>
-//#include <math.h>
 #include <stdint.h>
 #include <sys/time.h>
 
@@ -302,10 +300,13 @@ void *real_functions[] = {[SQRT] = &real_sqrt,
                           [SINCOSF] = &real_sincosf,
                           [__REAL_FUNCTION_END__] = NULL};
 
+// Inspired from https://prng.di.unimi.it
+
 typedef uint64_t xoroshiro_state[2];
 static xoroshiro_state rng_state;
 
 uint64_t next_seed(uint64_t seed_state) {
+  // Reference: https://prng.di.unimi.it/splitmix64.c
   uint64_t z = (seed_state += UINT64_C(0x9E3779B97F4A7C15));
   z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
   z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
@@ -313,10 +314,12 @@ uint64_t next_seed(uint64_t seed_state) {
 }
 
 static inline uint64_t rotl(const uint64_t x, int k) {
+  // Reference: https://prng.di.unimi.it/xoroshiro128plusplus.c
   return (x << k) | (x >> (64 - k));
 }
 
 uint64_t next(xoroshiro_state s) {
+  // Reference: https://prng.di.unimi.it/xoroshiro128plusplus.c
   const uint64_t s0 = s[0];
   uint64_t s1 = s[1];
   const uint64_t result = rotl(s0 + s1, 17) + s0;
