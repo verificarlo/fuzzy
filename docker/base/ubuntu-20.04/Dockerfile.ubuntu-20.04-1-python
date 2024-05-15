@@ -1,31 +1,30 @@
-ARG VERIFICARLO_VERSION=v0.9.1
-FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.0.0
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack
+
+ARG PYTHON_VERSION=3.8.5
 
 # Use IEEE mode for compiling with verificarlo
-RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
-
-# Remove any existing python packages
-RUN apt -y -qqq remove python3
-
-## Build Python 3.8.5 from source and the associated pip
-RUN cd /opt/build/ && \
-    wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz && \
-    tar xvf Python-3.8.5.tgz && \
-    cd Python-3.8.5 && \
-    LDFLAGS="--conservative --exclude-file=/tmp/python-vfc-exclude.txt" \
-    CFLAGS="--conservative --exclude-file=/tmp/python-vfc-exclude.txt" \
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
+    # Remove any existing python packages
+    apt -y -qqq remove python3 && \
+    # Build Python from source and the associated pip
+    cd /opt/build/ && \
+    wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
+    tar xvf Python-${PYTHON_VERSION}.tgz && \
+    cd Python-${PYTHON_VERSION} && \
+    LDFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" \
+    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" \
     LDSHARED='verificarlo-c -shared' \
-    ./configure --with-ensurepip=install &&\
-    make -j $(nproc) &&\
-    make install &&\ 
-    wget https://bootstrap.pypa.io/get-pip.py &&\
-    python3 get-pip.py
-
-# Remove temporary files
-RUN rm -rf /opt/build/*
-
-# Restore default MCA mode
-RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
+    ./configure --with-ensurepip=install && \
+    make -j $(nproc) && \
+    make install && \
+    wget https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py && \
+    # Remove temporary files
+    rm -rf /opt/build/* && \
+    # Restore default MCA mode
+    echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 # Set entrypoint
 ENTRYPOINT [ "/bin/bash"]

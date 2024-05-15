@@ -1,8 +1,8 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
-#include <interflop.h>
 #include <stdio.h>
-//#include <math.h>
+
+#include "interflop/interflop.h"
 
 #define xstr(s) str(s)
 #define str(s) #s
@@ -89,12 +89,12 @@ static void (*real_sincosf)(float dbl, float *sin, float *cos);
 #define ZERO(TYPE) _Generic(TYPE, float : 0.0f, double : 0.0)
 #define GET_FTYPE(TYPE) _Generic(TYPE, float : FFLOAT, double : FDOUBLE)
 
-#define DEFINE_1_WRAPPER(NAME, TYPE)					\
-  TYPE NAME(TYPE x) {							\
-    real_##NAME = dlsym(RTLD_NEXT, #NAME);				\
-    TYPE res = real_##NAME(x);						\
-    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);	\
-    return res;								\
+#define DEFINE_1_WRAPPER(NAME, TYPE)                                           \
+  TYPE NAME(TYPE x) {                                                          \
+    real_##NAME = dlsym(RTLD_NEXT, #NAME);                                     \
+    TYPE res = real_##NAME(x);                                                 \
+    interflop_call(INTERFLOP_INEXACT_ID, GET_FTYPE(x), &res, -1);              \
+    return res;                                                                \
   }
 
 #define DEFINE_1i_1_WRAPPER(NAME, TYPE)                                        \

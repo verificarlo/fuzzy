@@ -1,7 +1,8 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
-#include <interflop.h>
 #include <mpfr.h>
+
+#include "interflop/interflop.h"
 
 __float128 mpfr_get_float128(mpfr_t op, mpfr_rnd_t rnd);
 
