@@ -49,10 +49,10 @@ jobs:
     name: ${{ matrix.NAME }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Check for file changes
-        uses: jitterbit/get-changed-files@v1
+        uses: tj-actions/changed-files@v44
         id: changes
 
       - name: Print list of changed files
@@ -61,7 +61,7 @@ jobs:
       - name: If Dockerfiles have been updated, cancel running upstream jobs
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
         continue-on-error: true
-        uses: n1hility/cancel-previous-runs@v2
+        uses: n1hility/cancel-previous-runs@v3
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: Download Docker artifacts, if available
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.DOCKER_FROM }}
           path: /tmp
@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload Docker artifacts
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.DOCKER_TO }}
           path: /tmp/${{ matrix.DOCKER_TO }}.tar
@@ -123,10 +123,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Check for file changes
-        uses: jitterbit/get-changed-files@v1
+        uses: tj-actions/changed-files@v44
         id: changes
 
       - name: Print list of changed files
@@ -134,7 +134,7 @@ jobs:
 
       - name: If Dockerfiles have been updated, cancel running upstream jobs
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: n1hility/cancel-previous-runs@v2
+        uses: n1hility/cancel-previous-runs@v3
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
 
@@ -153,7 +153,7 @@ jobs:
 
       - name: Download Docker artifacts, if available
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.DOCKER_FROM }}
           path: /tmp
