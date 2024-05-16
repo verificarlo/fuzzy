@@ -21,7 +21,7 @@ jobs:
         include:
           - NAME: Lapack + Libmath
             DOCKER_FROM: ""
-            DOCKER_TO: fuzzy_${{ VERIFICARLO_VERSION }}-lapack
+            DOCKER_TO: fuzzy_${{ env.VERIFICARLO_VERSION }}-lapack
             DOCKER_IMAGE: verificarlo/fuzzy:${{ env.VERIFICARLO_VERSION }}-lapack
             DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-0-lapack-libmath
 
