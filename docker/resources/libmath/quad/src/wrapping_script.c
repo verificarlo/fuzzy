@@ -1,9 +1,11 @@
 #define _GNU_SOURCE
+
 #include <dlfcn.h>
-#include <interflop.h>
 #include <quadmath.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "interflop/interflop.h"
 
 #define GET_PRECISION(TYPE) _Generic(TYPE, float : 24, double : 53)
 

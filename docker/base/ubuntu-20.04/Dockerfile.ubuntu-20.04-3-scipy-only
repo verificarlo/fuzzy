@@ -1,34 +1,40 @@
-ARG VERIFICARLO_VERSION=v0.9.1
-FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-numpy
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.0.0
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-numpy
 
-# Load backend IEEE
-RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+ARG SCIPY_VERSION=1.7.3
 
 # Copy sanity check for SciPy
-COPY docker/resources/numpy-sanity-check.py /tmp/scipy-sanity-check.py
+COPY docker/resources/scipy-sanity-check.py /tmp/
 
-# Install SciPy dependencies
-RUN pip3 install joblib pythran pybind11
-# Replace gfortran with verificarlo-f
-RUN cp /usr/local/bin/verificarlo-f /usr/bin/gfortran
-
-RUN cd /opt/build/ &&\
-  wget https://github.com/scipy/scipy/releases/download/v1.7.3/scipy-1.7.3.tar.gz &&\
-  tar xvf scipy-1.7.3.tar.gz &&\
-  cd scipy-1.7.3 &&\
-  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" LDSHARED='verificarlo-c -shared' \
-  CFLAGS="--conservative -Wunused-command-line-argument" \
-  LDFLAGS="--conservative -Wunused-command-line-argument" \
-  python3 setup.py build --disable-optimization -j $(nproc) install
-
-# Sanity check
-RUN python3 /tmp/scipy-sanity-check.py
-
-# Remove temporary files
-RUN rm -rf /opt/build/*
+# Load backend IEEE
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
+  # Install SciPy dependencies
+  pip3 install joblib pythran pybind11 && \
+  # Replace gfortran with verificarlo-f
+  cp /usr/local/bin/verificarlo-f /usr/bin/gfortran && \
+  # Remove debug flag which makes compilation crash
+  sed -i "397s/.*/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options/" $(which verificarlo) && \
+  cd /opt/build/ &&\
+  wget https://github.com/scipy/scipy/releases/download/v${SCIPY_VERSION}/scipy-${SCIPY_VERSION}.tar.gz &&\
+  tar xvf scipy-${SCIPY_VERSION}.tar.gz &&\
+  cd scipy-${SCIPY_VERSION} &&\
+  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" \
+  LDSHARED='verificarlo-c -shared' \
+  CFLAGS="-Wunused-command-line-argument" \
+  CXXFLAGS="-Wunused-command-line-argument" \
+  FCFLAGS="-Wunused-command-line-argument" \
+  LDFLAGS="-Wunused-command-line-argument" \
+  python3 setup.py build --disable-optimization -j $(nproc) install && \
+  # Restore original verificarlo
+  sed -i "397s/    llvm_options = llvm_options.replace(\"'-g'\",'') if \"'-g'\" in llvm_options else llvm_options//" $(which verificarlo) && \
+  # Set default MCA mode
+  echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
+  # Sanity check
+  cd && python3 /tmp/scipy-sanity-check.py && \
+  rm -rf /opt/build/*
 
 # Restore default behavior for verificarlo's CC
 ENV CC "verificarlo-c"
-RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 ENTRYPOINT [ "/bin/bash"]

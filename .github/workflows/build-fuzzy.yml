@@ -1,11 +1,11 @@
----
-name: Build Fuzzy Environments
-
 on:
   push:
     branches: ['*']
   pull_request:
     branches: ['*']
+
+env:
+  VERIFICARLO_VERSION: v2.0.0
 
 jobs:
   fuzzy:
@@ -18,41 +18,41 @@ jobs:
         include:
           - NAME: Lapack + Libmath
             DOCKER_FROM: ""
-            DOCKER_TO: fuzzy_v0.9.1-lapack
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.9.1-lapack
+            DOCKER_TO: fuzzy_v2.0.0-lapack
+            DOCKER_IMAGE: verificarlo/fuzzy:v2.0.0-lapack
             DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-0-lapack-libmath
 
           - NAME: Python
-            DOCKER_FROM: fuzzy_v0.9.1-lapack
-            DOCKER_TO: fuzzy_v0.9.1-lapack-python3.8.5
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.9.1-lapack-python3.8.5
+            DOCKER_FROM: fuzzy_v2.0.0-lapack
+            DOCKER_TO: fuzzy_v2.0.0-lapack-python3.8.5
+            DOCKER_IMAGE: verificarlo/fuzzy:v2.0.0-lapack-python3.8.5
             DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-1-python
 
           - NAME: Numpy
-            DOCKER_FROM: fuzzy_v0.9.1-lapack-python3.8.5
-            DOCKER_TO: fuzzy_v0.9.1-lapack-python3.8.5-numpy
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.9.1-lapack-python3.8.5-numpy
+            DOCKER_FROM: fuzzy_v2.0.0-lapack-python3.8.5
+            DOCKER_TO: fuzzy_v2.0.0-lapack-python3.8.5-numpy
+            DOCKER_IMAGE: verificarlo/fuzzy:v2.0.0-lapack-python3.8.5-numpy
             DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-2-numpy
 
           - NAME: Scipy
-            DOCKER_FROM: fuzzy_v0.9.1-lapack-python3.8.5-numpy
-            DOCKER_TO: fuzzy_v0.9.1-lapack-python3.8.5-numpy-scipy
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.9.1-lapack-python3.8.5-numpy-scipy
+            DOCKER_FROM: fuzzy_v2.0.0-lapack-python3.8.5-numpy
+            DOCKER_TO: fuzzy_v2.0.0-lapack-python3.8.5-numpy-scipy
+            DOCKER_IMAGE: verificarlo/fuzzy:v2.0.0-lapack-python3.8.5-numpy-scipy
             DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-3-scipy
 
           - NAME: Scikit-Learn
-            DOCKER_FROM: fuzzy_v0.9.1-lapack-python3.8.5-numpy-scipy
-            DOCKER_TO: fuzzy_v0.9.1-lapack-python3.8.5-numpy-scipy-sklearn
-            DOCKER_IMAGE: verificarlo/fuzzy:v0.9.1-lapack-python3.8.5-numpy-scipy-sklearn
+            DOCKER_FROM: fuzzy_v2.0.0-lapack-python3.8.5-numpy-scipy
+            DOCKER_TO: fuzzy_v2.0.0-lapack-python3.8.5-numpy-scipy-sklearn
+            DOCKER_IMAGE: verificarlo/fuzzy:v2.0.0-lapack-python3.8.5-numpy-scipy-sklearn
             DOCKER_FILE: ./docker/base/ubuntu-20.04/Dockerfile.ubuntu-20.04-4-sklearn
 
     name: ${{ matrix.NAME }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Check for file changes
-        uses: jitterbit/get-changed-files@v1
+        uses: tj-actions/changed-files@v44
         id: changes
 
       - name: Print list of changed files
@@ -61,7 +61,7 @@ jobs:
       - name: If Dockerfiles have been updated, cancel running upstream jobs
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
         continue-on-error: true
-        uses: n1hility/cancel-previous-runs@v2
+        uses: n1hility/cancel-previous-runs@v3
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: Download Docker artifacts, if available
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.DOCKER_FROM }}
           path: /tmp
@@ -96,7 +96,7 @@ jobs:
 
           docker build ./ -t ${{ matrix.DOCKER_IMAGE }} \
                           -f ${{ matrix.DOCKER_FILE }} \
-                          --build-arg VERIFICARLO_VERSION=v0.9.1
+                          --build-arg VERIFICARLO_VERSION=v2.0.0
 
           docker save ${{ matrix.DOCKER_IMAGE }} -o /tmp/${{ matrix.DOCKER_TO }}.tar
 
@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload Docker artifacts
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.DOCKER_TO }}
           path: /tmp/${{ matrix.DOCKER_TO }}.tar
@@ -117,16 +117,16 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       RUN_IF_CHANGED: docker
-      DOCKER_FROM: fuzzy_v0.9.1-lapack-python3.8.5-numpy-scipy-sklearn
+      DOCKER_FROM: fuzzy_v2.0.0-lapack-python3.8.5-numpy-scipy-sklearn
       DOCKER_IMAGE: verificarlo/fuzzy
-      DOCKER_FROM_TAG: v0.9.1-lapack-python3.8.5-numpy-scipy-sklearn
+      DOCKER_FROM_TAG: v2.0.0-lapack-python3.8.5-numpy-scipy-sklearn
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Check for file changes
-        uses: jitterbit/get-changed-files@v1
+        uses: tj-actions/changed-files@v44
         id: changes
 
       - name: Print list of changed files
@@ -134,7 +134,7 @@ jobs:
 
       - name: If Dockerfiles have been updated, cancel running upstream jobs
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: n1hility/cancel-previous-runs@v2
+        uses: n1hility/cancel-previous-runs@v3
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
 
@@ -153,7 +153,7 @@ jobs:
 
       - name: Download Docker artifacts, if available
         if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.DOCKER_FROM }}
           path: /tmp
@@ -165,7 +165,7 @@ jobs:
           docker image ls -a
 
           docker image tag ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_FROM_TAG }} \
-                           ${{ env.DOCKER_IMAGE }}:latest
+                          ${{ env.DOCKER_IMAGE }}:latest
 
           if ${{ env.PUSH }}
           then

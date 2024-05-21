@@ -1,34 +1,33 @@
-ARG VERIFICARLO_VERSION=v0.9.1
-FROM verificarlo/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.0.0
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5
 
-# Use IEEE mode for compiling with verificarlo
-RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE
+ARG NUMPY_VERSION=1.22.4
 
 # Copy verificarlo's exclusion file for Python 3
 COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
 COPY docker/resources/numpy-sanity-check.py /tmp/numpy-sanity-check.py
 
-# Build numpy from sources and link with the local BLAS and LAPACK
-RUN python3 -m pip install cython
-
-RUN cd /opt/build/ &&\
-    wget https://github.com/numpy/numpy/releases/download/v1.22.0/numpy-1.22.0.tar.gz &&\
-    tar xvf numpy-1.22.0.tar.gz &&\
-    cd numpy-1.22.0 &&\
+# Use IEEE mode for compiling with verificarlo
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
+    # Build numpy from sources and link with the local BLAS and LAPACK
+    python3 -m pip install cython==0.29.30 && \
+    cd /opt/build/ &&\
+    wget https://github.com/numpy/numpy/releases/download/v${NUMPY_VERSION}/numpy-${NUMPY_VERSION}.tar.gz &&\
+    tar xvf numpy-${NUMPY_VERSION}.tar.gz &&\
+    cd numpy-${NUMPY_VERSION} &&\
     CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" LDSHARED='verificarlo-c -shared' \
-    CFLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
-    LDFLAGS="--conservative --exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
-    python3 setup.py build -j $(nproc) --disable-optimization install
-
-
-# Smoked test for vectorization.
-# We should run the full numpy test suit in next versions
-RUN python3 /tmp/numpy-sanity-check.py
-
-# Remove temporary files
-RUN rm -rf /opt/build/*
-
-# Restore default MCA mode
-RUN echo "libinterflop_mca_int.so -m rr" > $VFC_BACKENDS_FROM_FILE
+    CFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    FCFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    CXXFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    LDFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    python3 setup.py build -j $(nproc) --disable-optimization install && \
+    # Smoked test for vectorization.
+    # We should run the full numpy test suit in next versions
+    cd && python3 /tmp/numpy-sanity-check.py && \
+    # Remove temporary files
+    rm -rf /opt/build/* && \
+    # Restore default MCA mode
+    echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
 
 ENTRYPOINT [ "/bin/bash"]

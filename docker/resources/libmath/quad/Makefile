@@ -15,10 +15,6 @@ SRCS = src/wrapping_script.c  # source files
 OBJS = $(SRCS:.c=.o)
 ROOT = $(PWD)
 
-ifdef CONSERVATIVE
-CFLAGS += --conservative
-endif
-
 .PHONY: tracer
 
 $(TARGET_LIB): $(OBJS)

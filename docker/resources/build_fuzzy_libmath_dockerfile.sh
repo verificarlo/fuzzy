@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DOCKERFILE=Dockerfile.mcalibmath
-FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v0.9.1-lapack
+FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v2.0.0-lapack
 
 generate_docker() {
 
@@ -9,7 +9,7 @@ generate_docker() {
 # Base image
 FROM ${1}
 
-RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr} 
+RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr}
 COPY --from=${2} /opt/mca-libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
 COPY --from=${2} /opt/mca-libmath/fast/libmath.so /opt/mca-libmath/fast/libmath.so
 COPY --from=${2} /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/standard/libmath.so
@@ -52,4 +52,4 @@ fi
 
 echo "Build fuzzy-libmath (from ${FUZZY_IMAGE}) for ${BASE_IMAGE} as ${TAG}"
 generate_docker $BASE_IMAGE $FUZZY_IMAGE
-build_docker $TAG 
+build_docker $TAG
