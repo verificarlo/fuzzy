@@ -1,3 +1,19 @@
+# [v2.0.0] 2024/05/21
+
+## Changed
+    * Change verificarlo version [v0.9.1 -> v2.0.0]
+    * Update numpy version from 1.22.0 to 1.22.4
+    * Update sklearn version from 1.0.2 to 1.3.2
+    * Update build_fuzzy_libmath_dockerfile.sh 
+
+# [v0.9.1] 2023/03/23
+
+## Added
+    * Fast version for libmath, reusing +/- 1 trick from [Verrou](https://github.com/edf-hpc/verrou/blob/master/interflop_backends/interflop_verrou/vr_roundingOp.hxx)
+
+## Changed
+    * Change verificarlo version [v0.8.0 -> v0.9.1]
+
 # [v0.8.0] 2022/07/15
 
 ## Changed
@@ -20,6 +36,7 @@
 
 ## Deprecated
     * Version v0.5.0 must not be used on architecture not supporting AVX-512
+
 # [v0.5.0] 2021/06/18
 
 ## Changed

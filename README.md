@@ -1,4 +1,4 @@
-# Fuzzy v0.9.1
+# Fuzzy v2.0.0
 
 [![DOI](https://zenodo.org/badge/218554957.svg)](https://zenodo.org/badge/latestdoi/218554957)
 [![Build Fuzzy Environments](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml/badge.svg?branch=master)](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml)
@@ -248,6 +248,18 @@ and applications can be built atop them:
 > Sohier, Devan, et al. "Confidence Intervals for Stochastic Arithmetic." ACM Transactions on Mathematical Software (TOMS) 47.2 (2021): 1-33.
 >
 > Kiar, Gregory, et al. "Data Augmentation Through Monte Carlo Arithmetic Leads to More Generalizable Classification in Connectomics." bioRxiv (2020).
+>
+> Chatelain, Yohan, et al. "PyTracer: Automatically profiling numerical instabilities in Python." IEEE Transactions on Computers (2022).
+>
+> Des Ligneris, Morgane, et al. "Reproducibility of tumor segmentation outcomes with a deep learning model." 2023 IEEE 20th International Symposium on Biomedical Imaging (ISBI). IEEE, 2023.
+> 
+> Pepe, Inés Gonzalez, et al. "Numerical Uncertainty of Convolutional Neural Networks Inference for Structural Brain MRI Analysis." International Workshop on Uncertainty for Safe Utilization of Machine Learning in Medical Imaging. Cham: Springer Nature Switzerland, 2023.
+>
+> Chatelain, Yohan, et al. "A numerical variability approach to results stability tests and its application to neuroimaging." arXiv preprint arXiv:2307.01373 (2023).
+> 
+> Vila, Gaël, et al. "The Impact of Hardware Variability on Applications Packaged with Docker and Guix: a Case Study in Neuroimaging." (2024).
+>
+> Gonzalez Pepe, Inés, et al. "Numerical stability of DeepGOPlus inference." Plos one 19.1 (2024): e0296725.
 
 ## License
 The *Fuzzy* copyright belongs to all contributors of this repository, and it is
