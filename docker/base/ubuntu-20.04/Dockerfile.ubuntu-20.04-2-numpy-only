@@ -2,7 +2,8 @@ ARG ORG=verificarlo
 ARG VERIFICARLO_VERSION=v2.0.0
 FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack
 
-ARG NUMPY_VERSION=1.22.4
+
+ARG NUMPY_VERSION=1.24.4
 
 # Copy verificarlo's exclusion file for Python 3
 COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
@@ -17,10 +18,10 @@ RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
     tar xvf numpy-${NUMPY_VERSION}.tar.gz &&\
     cd numpy-${NUMPY_VERSION} &&\
     CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" LDSHARED='verificarlo-c -shared' \
-    CFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
-    FCFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
-    CXXFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
-    LDFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt -Wunused-command-line-argument" \
+    CFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
+    FCFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
+    CXXFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
+    LDFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
     python3 setup.py build -j $(nproc) --disable-optimization install && \
     # Smoked test for vectorization.
     # We should run the full numpy test suit in next versions

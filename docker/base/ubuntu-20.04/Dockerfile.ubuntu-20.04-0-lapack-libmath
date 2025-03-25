@@ -1,5 +1,5 @@
 ARG ORG=verificarlo
-ARG VERIFICARLO_VERSION=v2.0.0
+ARG VERIFICARLO_VERSION=v2.1.0
 FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION}
 
 # Setup build dependencies
@@ -44,16 +44,16 @@ RUN cd /opt/build/ && \
     gunzip lapack-3.9.0.tgz && \
     tar xf lapack-3.9.0.tar && \
     cd /opt/build/lapack-3.9.0/ && \
-    cp make.inc.example make.inc && \
-    sed -i 's/= gcc/= verificarlo-c/g' make.inc && \
-    sed -i 's/= gfortran/= verificarlo-f/g' make.inc && \
-    sed -i 's/TIMER    = INT_ETIME/#TIMER    = INT_ETIME/g' make.inc && \
-    sed -i 's/# TIMER = NONE/TIMER = NONE/g' make.inc && \
     mkdir build && \
     cd /opt/build/lapack-3.9.0/build && \
-    cmake FC=verificarlo-f -DCMAKE_BUILD_TYPE=RELEASE \
-    -DCMAKE_C_COMPILER=verificarlo-c -DCMAKE_Fortran_COMPILER=verificarlo-f \
-    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON .. && \
+    cmake \
+    -DCMAKE_BUILD_TYPE=RELEASE \
+    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON \
+    -DCMAKE_C_FLAGS="--inst-fma" \
+    -DCMAKE_Fortran_FLAGS="--inst-fma" \
+    -DCMAKE_C_COMPILER=verificarlo-c \
+    -DCMAKE_Fortran_COMPILER=verificarlo-f \
+    .. && \
     make -j $(nproc) && \
     make install && \
     rm -rf /opt/build/*
@@ -65,6 +65,8 @@ ARG FUZZY_LIBMATH_VERSION=standard
 
 RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
     set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
+
+RUN sed -i 's/\${@}/"${@}"/g' /usr/local/bin/verificarlo-*
 
 # Set bash shell as entrypoint
 ENTRYPOINT [ "/bin/bash"]

@@ -1,8 +1,8 @@
 ARG ORG=verificarlo
-ARG VERIFICARLO_VERSION=v2.0.0
-FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.5-numpy-scipy
+ARG VERIFICARLO_VERSION=v2.1.0
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.20-numpy-scipy
 
-ARG SKLEARN_VERSION=1.3.2
+ARG SKLEARN_VERSION=1.2.2
 
 COPY docker/resources/sklearn-sanity-check.py /tmp/
 
@@ -11,18 +11,18 @@ RUN pip install cython>=3.0.0 -U && \
   echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE  && \
   cd /opt/build && \
   wget https://github.com/scikit-learn/scikit-learn/archive/refs/tags/${SKLEARN_VERSION}.tar.gz &&\
-  tar xvf  ${SKLEARN_VERSION}.tar.gz &&\
+  tar xvf ${SKLEARN_VERSION}.tar.gz &&\
   cd scikit-learn-${SKLEARN_VERSION} &&\
   CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" \
-  CFLAGS="-Wunused-command-line-argument" \
-  FCFLAGS="-Wunused-command-line-argument" \
-  LDFLAGS="-Wunused-command-line-argument" \
-  LDSHARED="verificarlo-c -shared" \
+  CFLAGS="--inst-fma" \
+  CXXFLAGS="--inst-fma" \
+  FCFLAGS="--inst-fma" \
+  LDFLAGS="--inst-fma -shared" \
+  LDSHARED="verificarlo-c" \
   python3 -m pip install --verbose  . && \
   # Remove temporary files
   echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
   cd && python3 /tmp/sklearn-sanity-check.py && \
   rm -rf /opt/build/*
-
 
 ENTRYPOINT [ "/bin/bash"]
