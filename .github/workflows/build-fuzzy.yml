@@ -59,14 +59,14 @@ jobs:
         run: echo ${{ steps.changes.outputs.files }}
 
       - name: If Dockerfiles have been updated, cancel running upstream jobs
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         continue-on-error: true
         uses: n1hility/cancel-previous-runs@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine if images will be pushed to Docker, and login as needed
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         run: |
           if ([ "${{github.event_name}}" == "push" ] && [ "${{github.ref}}" == "refs/heads/master" ])
           then
@@ -80,16 +80,17 @@ jobs:
           fi
 
       - name: Download Docker artifacts, if available
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}') && matrix.DOCKER_FROM != ''
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.DOCKER_FROM }}
           path: /tmp
 
-      - name: (optionally) Load, Build, and (optionally) Push Docker image
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+      - name: Build and Push Docker image
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         run: |
-          if [ ! -z ${{ matrix.DOCKER_FROM }} ]
+          if [ -n "${{ matrix.DOCKER_FROM }}" ] && [ -f "/tmp/${{ matrix.DOCKER_FROM }}.tar" ]
           then
             docker load --input /tmp/${{ matrix.DOCKER_FROM }}.tar
             docker image ls -a
@@ -104,10 +105,9 @@ jobs:
           then
             docker push ${{ matrix.DOCKER_IMAGE }}
           fi
-          fi
 
       - name: Upload Docker artifacts
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.DOCKER_TO }}
@@ -131,16 +131,16 @@ jobs:
         id: changes
 
       - name: Print list of changed files
-        run: echo ${{ steps.changes.outputs.all }}
+        run: echo ${{ steps.changes.outputs.all_changed_files }}
 
       - name: If Dockerfiles have been updated, cancel running upstream jobs
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         uses: n1hility/cancel-previous-runs@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine if images will be pushed to Docker, and login as needed
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         run: |
           if ([ "${{github.event_name}}" == "push" ] && [ "${{github.ref}}" == "refs/heads/master" ])
           then
@@ -153,14 +153,14 @@ jobs:
           fi
 
       - name: Download Docker artifacts, if available
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.DOCKER_FROM }}
           path: /tmp
 
-      - name: (optionally) Load, Rename, and Push Docker image
-        if: contains(steps.changes.outputs.all, ${{ env.RUN_IF_CHANGED }})
+      - name: Load, Rename, and Push Docker image
+        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
         run: |
           docker load --input /tmp/${{ env.DOCKER_FROM }}.tar
           docker image ls -a
