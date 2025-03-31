@@ -107,6 +107,8 @@ RUN cd /opt/build/ && \
         python3 setup.py install && \
         cd /tmp/ && python3 test_fuzzy_pytorch.py
 
+ENV PYTHONPATH=/usr/local/lib/python3.8/dist-packages
+
 # Build torchaudio
 RUN cd /opt/build/ && \
         git clone --depth=1 -b v2.2.1 https://github.com/pytorch/audio.git && \
@@ -117,7 +119,7 @@ RUN cd /opt/build/ && \
         CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=dynamic --verbose --inst-fma" \
         LDFLAGS="--prism-backend=sr --prism-backend-dispatch=dynamic --verbose --inst-fma -shared" \
         LDSHARED=verificarlo-c \
-        python3.8 setup.py develop
+        python3.8 -m pip install . -r requirements.txt
 
 # Runtime stage
 FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION}
