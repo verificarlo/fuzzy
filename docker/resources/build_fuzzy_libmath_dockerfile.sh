@@ -4,7 +4,7 @@ DOCKERFILE=Dockerfile.mcalibmath
 FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v2.0.0-lapack
 
 generate_docker() {
-
+    
     cat >${DOCKERFILE} <<HERE
 # Base image
 FROM ${1}
@@ -24,9 +24,11 @@ COPY --from=${2} /usr/local/include/* /usr/local/include/
 # Preloading the instrumented shared library
 RUN set-fuzzy-libmath --version=standard
 
+ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
+ENV VFC_BACKENDS_LOGGER False
 ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=rr'
 HERE
-
+    
 }
 
 build_docker() {
@@ -40,11 +42,11 @@ if [[ $# < 2 ]]; then
     echo "          [FUZZY_IMAGE]:  Name of the fuzzy image to copy from (optional)"
     echo "                          Requires a fuzzy version >= 0.9.1"
     exit 1
-elif [[ $# == 2 ]]; then
+    elif [[ $# == 2 ]]; then
     BASE_IMAGE=$1
     TAG=$2
     FUZZY_IMAGE=$FUZZY_IMAGE_DEFAULT
-elif [[ $# == 3 ]]; then
+    elif [[ $# == 3 ]]; then
     BASE_IMAGE=$1
     TAG=$2
     FUZZY_IMAGE=$3

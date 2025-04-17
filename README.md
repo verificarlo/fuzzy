@@ -1,4 +1,4 @@
-# Fuzzy v2.0.0
+# Fuzzy v2.1.0
 
 [![DOI](https://zenodo.org/badge/218554957.svg)](https://zenodo.org/badge/latestdoi/218554957)
 [![Build Fuzzy Environments](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml/badge.svg?branch=master)](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml)
@@ -7,7 +7,28 @@
 
 *A fuzzy ecosystem for evaluating the effect of numerical error on computational tools.*
 
-[![Fuzzy Marimo](https://github.com/verificarlo/fuzzy/raw/master/img/fuzzy.png)](./img/fuzzy.png)
+<div align="center">
+  <a href="./img/fuzzy.png">
+    <img src="https://github.com/verificarlo/fuzzy/raw/master/img/fuzzy.png" alt="Fuzzy Marimo">
+  </a>
+</div>
+
+## Table of Contents
+- [Fuzzy v2.1.0](#fuzzy-v210)
+  - [Table of Contents](#table-of-contents)
+  - [Motivation](#motivation)
+  - [Usage](#usage)
+      - [Building \& booting the environment](#building--booting-the-environment)
+      - [Adding your software](#adding-your-software)
+      - [Fuzzy-libmath](#fuzzy-libmath)
+      - [Using Fuzzy in Multi-stage builds](#using-fuzzy-in-multi-stage-builds)
+      - [Running Fuzzy workflows](#running-fuzzy-workflows)
+      - [Quick overview of Monte Carlo Arithmetic](#quick-overview-of-monte-carlo-arithmetic)
+      - [Common failures](#common-failures)
+  - [Contributing](#contributing)
+  - [Presentation](#presentation)
+  - [References](#references)
+  - [License](#license)
 
 ## Motivation
 
@@ -40,7 +61,7 @@ programs can be evaluated, reducing the overhead on both tool developers and con
 You can get started with *Fuzzy* quite simply, just launch a
 [Docker](https://www.docker.com/) container as follows:
 
-```
+```bash
 docker run -ti verificarlo/fuzzy
 ```
 
@@ -54,7 +75,7 @@ build chain, you'll find instrumented versions of `libmath`, `lapack`, `python3`
 `numpy`, and several other recompiled libraries.
 
 An example for how to verify your installation for Python could be the following:
-```
+```bash
 $ python3 -c "print([sum([.001]*1000) for _ in range(3)])"
 [1.0, 0.9999999999999997, 1.0000000000000007, 1.0000000000000002]
 ```
@@ -70,7 +91,7 @@ The next step is to make sure the environment is configured to introduce perturb
 the way you expect. You can start with a configuration which performs perturbations
 akin to randomizing machine error with the following:
 
-```
+```bash
 echo "libinterflop_mca.so -m mca --precision-binary32=24 --precision-binary64=53" > $VFC_BACKENDS_FROM_FILE
 ```
 
@@ -113,7 +134,7 @@ the fastest and can be used if one does not require high accuracy. To switch
 from one version to another, please use the `set-fuzzy-libmath` tool already
 installed in the docker image as follow:
 
-```
+```bash
 usage: set-fuzzy-libmath [-h] --version {no-fuzzy,standard,quad,mpfr}
 
 optional arguments:
@@ -133,6 +154,39 @@ Fuzzy libmath version to use:
                     Slowest version but gives the correct rounding.
 ```
 
+
+> [!TIP] 
+> The script [build_fuzzy_libmath_dockerfile.sh](docker/resources/build_fuzzy_libmath_dockerfile.sh) helps you turn your Docker image into a fuzzy-libmath one.
+
+```bash
+usage: ./build_fuzzy_libmath_dockerfile.sh <DOCKER_IMAGE> <TAG> [FUZZY_IMAGE]
+          <DOCKER_IMAGE>: Name of the base Docker image to build
+          <TAG>:          Tag of the new image to build
+          [FUZZY_IMAGE]:  Name of the fuzzy image to copy from (optional)
+                          Requires a fuzzy version >= 0.9.1
+```
+
+To test your instrumentation:
+
+**Python**
+```python
+>>> import math
+>>> from collections import Counter
+>>> Counter( math.cos(42) for i in range(1000) )
+Counter({-0.39998531498835127: 506, -0.3999853149883513: 249, -0.3999853149883512: 245})
+```
+
+**Octave**
+```matlab
+>>> x = repmath(42, 1000);
+>>> y = cos(x);
+>>> printf("%.17f\n", unique(y))
+-0.39998531498835133
+-0.39998531498835127
+-0.39998531498835121
+```
+
+
 #### Using Fuzzy in Multi-stage builds
 Fuzzy provides a set of recompiled shared objects and tools that facilitate adding
 Monte Carlo Arithmetic to tools. If you've got a Docker container which relies on
@@ -140,7 +194,7 @@ some of these libraries, you can easily add *Fuzzy* with a [Multi-stage Docker b
 
 For example:
 
-```
+```bash
 FROM verificarlo/fuzzy:latest as fuzzy
 
 # Your target image
