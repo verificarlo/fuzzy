@@ -1,10 +1,10 @@
 #!/bin/bash
 
 DOCKERFILE=Dockerfile.mcalibmath
-FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v2.0.0-lapack
+FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v2.1.0-lapack
 
 generate_docker() {
-    
+
     cat >${DOCKERFILE} <<HERE
 # Base image
 FROM ${1}
@@ -28,7 +28,7 @@ ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
 ENV VFC_BACKENDS_LOGGER False
 ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=rr'
 HERE
-    
+
 }
 
 build_docker() {

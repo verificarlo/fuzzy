@@ -18,10 +18,10 @@ COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
 COPY docker/resources/libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
 
 # Setting compilers and linkers to use verificarlo
-ENV CC "verificarlo-c"
-ENV CXX "verificarlo-c++"
-ENV FC "verificarlo-f"
-ENV LDSHARED "verificarlo-c"
+ENV CC="verificarlo-c"
+ENV CXX="verificarlo-c++"
+ENV FC="verificarlo-f"
+ENV LDSHARED="verificarlo-c"
 
 # Setting verificarlo's backend file
 ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
