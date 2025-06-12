@@ -1,121 +1,165 @@
-FROM ubuntu:18.04 AS builder
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.1.0
+ARG PRISM_MODE=sr
+ARG PRISM_DISPATCH=static
 
-# Used by install scripts
-ARG UBUNTU_VERSION=18.04
+# Build stage
+FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION} AS builder
 
-ENV DEBIAN_FRONTEND noninteractive
+# Common environment variables
+ENV PRISM_FLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose -march=native --inst-fma"
+ENV VFC_BACKENDS="libinterflop_ieee.so"
 
-# Install common dependencies (so that this step can be cached separately)
-ADD resources/pytorch/build-deps-installers/install_base.sh install_base.sh
-RUN bash ./install_base.sh && rm install_base.sh
+# Setup build dependencies in a single layer
+RUN apt-get update -qqq && \
+        apt-get install -y --no-install-recommends -qqq \
+        make build-essential libssl-dev zlib1g-dev \
+        libbz2-dev libreadline-dev libsqlite3-dev wget \
+        curl llvm libncurses5-dev libncursesw5-dev \
+        xz-utils tk-dev wget fort77 gfortran cmake lzma-dev liblzma-dev \
+        libmpfr6 libmpfr-dev pybind11-dev python3-pybind11 && \
+        mkdir -p /opt/build/ && \
+        pip install typing_extensions cmake ninja 
 
-# Install clang
-ARG LLVMDEV=yes
-ARG CLANG_VERSION=9
-ADD resources/pytorch/build-deps-installers/install_clang.sh install_clang.sh
-RUN bash ./install_clang.sh && rm install_clang.sh
+# Copy necessary resources
+COPY docker/resources/lapack/blas-sanity-check.sh /tmp/blas-sanity-check.sh
+COPY docker/resources/lapack/test_blas.c /tmp/test_blas.c
+COPY docker/resources/pytorch/test_fuzzy_pytorch.py /tmp/test_fuzzy_pytorch.py
+COPY docker/resources/pytorch/test_fuzzy_pytorch_grad.py /tmp/test_fuzzy_pytorch_grad.py
+COPY docker/resources/pytorch/pytorch-vfc-exclude.txt /tmp/pytorch-vfc-exclude.txt
 
-# Install user
-ADD resources/pytorch/build-deps-installers/install_user.sh install_user.sh
-RUN bash ./install_user.sh && rm install_user.sh
-
-# Install conda
-ENV PATH /opt/conda/bin:$PATH
-ARG ANACONDA_PYTHON_VERSION=3.6
-ADD resources/pytorch/build-deps-installers/install_conda.sh install_conda.sh
-RUN bash ./install_conda.sh && rm install_conda.sh
-
-# Install Verificarlo
-ARG VERIFICARLO_VERSION=github
-ADD resources/pytorch/build-deps-installers/install_verificarlo.sh install_verificarlo.sh
-RUN bash ./install_verificarlo.sh && rm install_verificarlo.sh
-
-# Install protobuf for ONNX
-ARG PROTOBUF=yes
-ADD resources/pytorch/build-deps-installers/install_protobuf.sh install_protobuf.sh
-RUN if [ -n "${PROTOBUF}" ]; then bash ./install_protobuf.sh; fi
-RUN rm install_protobuf.sh
-ENV INSTALLED_PROTOBUF ${PROTOBUF}
-
-# Install database packages like LMDB and LevelDB
-ARG DB=yes
-ADD resources/pytorch/build-deps-installers/install_db.sh install_db.sh
-RUN if [ -n "${DB}" ]; then bash ./install_db.sh; fi
-RUN rm install_db.sh
-ENV INSTALLED_DB ${DB}
-
-# Install vision packages like OpenCV and ffmpeg
-ARG VISION=yes
-ADD resources/pytorch/build-deps-installers/install_vision.sh install_vision.sh
-RUN if [ -n "${VISION}" ]; then bash ./install_vision.sh; fi
-RUN rm install_vision.sh
-ENV INSTALLED_VISION ${VISION}
-
-# Install ccache/sccache (do this last, so we get priority in PATH)
-ADD resources/pytorch/build-deps-installers/install_cache.sh install_cache.sh
-ENV PATH /opt/cache/bin:$PATH
-RUN bash ./install_cache.sh && rm install_cache.sh
-
-# Install LLVM dev version (Defined in the pytorch/builder github repository)
-COPY --from=pytorch/llvm:9.0.1 /opt/llvm /opt/llvm
-
-USER jenkins
-
-# WORKDIR would create it but as root
-RUN mkdir /var/lib/jenkins/workspace
-
-WORKDIR /var/lib/jenkins/workspace
-RUN git clone https://github.com/pytorch/pytorch . && \
-    git checkout 490d41aaa61a9c0b12637e40cec066bf0e9515f3 && \
-    git submodule sync && git submodule update -q --init --recursive
-
-# Patch build script
-ADD resources/pytorch/build_script_patch .
-RUN git apply build_script_patch
-
-# Disable BLAS
-ADD resources/pytorch/patch_disabling_blas .
-RUN git apply patch_disabling_blas
-
-# Setup function instrumentation
-ADD resources/pytorch/script_setting_up_function_instrumentation .
-RUN bash script_setting_up_function_instrumentation
-
-ENV IN_CIRCLECI=1 \
-    BUILD_ENVIRONMENT=pytorch-linux-bionic-py3.6-verificarlo-build
-
-ARG MAX_JOBS=7
-
-RUN .jenkins/pytorch/build.sh && \
-    find . -type f -name "*.a" -or -name "*.o" -or -name "*.ll" -delete
+# Build Lapack
+RUN cd /opt/build/ && \
+        wget https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz && \
+        tar xf v3.12.1.tar.gz && \
+        cd /opt/build/lapack-3.12.1/ && \
+        mkdir build && \
+        cd /opt/build/lapack-3.12.1/build && \
+        cmake \
+        -DCMAKE_BUILD_TYPE=RELEASE \
+        -DCBLAS=ON -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_C_FLAGS="${PRISM_FLAGS}" \
+        -DCMAKE_Fortran_FLAGS="${PRISM_FLAGS}" \
+        -DCMAKE_C_COMPILER=verificarlo-c \
+        -DCMAKE_Fortran_COMPILER=verificarlo-f \
+        .. && \
+        make -j $(nproc) && \
+        make install && \
+        cd /tmp/ && ./blas-sanity-check.sh
 
 
-# =================================
-#      Final lightweight image
-# =================================
-FROM    ubuntu:18.04
+# Install patched verificarlo
+# Will be remove with version v2.1.1
+RUN cd /opt/build && \
+        git clone --depth=1 -b v2.1.0 https://github.com/verificarlo/verificarlo.git && \
+        cd verificarlo && \
+        sed -i 's/prism_fatal_error("Function not found: " + functionName);/return PrismFunction(function, passing_style);/' src/libvfcinstrumentprism/libVFCInstrumentPRISM.cpp && \
+        ./autogen.sh && \
+        ./configure --with-llvm=$(llvm-config-7 --prefix) && \
+        make -C src/libvfcinstrumentprism && \
+        make -C src/libvfcinstrumentprism install
 
-RUN     apt-get update && \
-        apt-get install -y wget && \
-        wget -q "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" && \
-        chmod +x ./Miniconda3-latest-Linux-x86_64.sh && \
-        ./Miniconda3-latest-Linux-x86_64.sh -b -f -p "/opt/conda" && \
-        /opt/conda/bin/conda install -y python="3.6" numpy=1.18.5 pyyaml mkl mkl-include setuptools \
-                                        cffi typing typing_extensions future six dataclasses && \
-        rm -rf /var/lib/apt/lists/* Miniconda3-latest-Linux-x86_64.sh
+# Build PyTorch
+# TODO: Found the issue with the commented lines below
+# One of these make the autograd engine fail at runtime
+RUN cd /opt/build/ && \
+        git clone --depth=1 -b v2.2.1 https://github.com/pytorch/pytorch.git && \
+        cd pytorch && \
+        git submodule sync && \
+        git submodule update --init --recursive && \
+        pip install -r requirements.txt && \
+        sed -i '/Module(Module&&)/s/noexcept//g' torch/csrc/jit/api/module.h && \
+        sed -i '1i#include <iostream>' torch/binaries/dump_operator_names.cc && \
+        mkdir -p build && \
+        cd build && \
+        cmake -GNinja \
+        -DCMAKE_INSTALL_PREFIX="/usr/local/lib/python3.8/dist-packages/torch" \
+        -DPYTHON_EXECUTABLE="/usr/bin/python3.8" \
+        -DCMAKE_MODULE_PATH="${PWD}/cmake/public" \
+        -DCMAKE_CXX_COMPILER=verificarlo-c++ \
+        -DCMAKE_CXX_FLAGS="${PRISM_FLAGS}" \
+        -DCMAKE_C_COMPILER=verificarlo-c \
+        -DCMAKE_C_FLAGS="${PRISM_FLAGS}" \
+        -DCMAKE_ASM_COMPILER=verificarlo-c \
+        #        -DSTATIC_DISPATCH_BACKEND=CPU \
+        #        -DTP_BUILD_PYTHON=ON \
+        -DTP_INSTALL_LIBDIR="/usr/local/lib/python3.8/dist-packages/torch/lib" \
+        #        -DBUILD_BINARY=ON \
+        #        -DUSE_DISTRIBUTED=ON \
+        -DUSE_CUDA=OFF \
+        -DUSE_MKLDNN=OFF \
+        -DUSE_NUMA=OFF \
+        -DUSE_FBGEMM=ON \
+        -DUSE_LAPACK=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DBLAS_LIBRARIES="/usr/local/lib/libcblas.so" \
+        -DBLAS=Generic \
+        -DUSE_NATIVE_ARCH=ON \
+        -DUSE_NUMPY=ON \
+        -DBUILD_CAFFE2=ON \
+        -DBUILD_CAFFE2_OPS=ON \
+        #        -DBUILD_ONNX_PYTHON=ON \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        .. && \
+        ninja && \
+        ninja install && \
+        cd /opt/build/pytorch && \
+        CC=verificarlo-c \
+        CXX=verificarlo-c++ \
+        LDSHARED=verificarlo-c \
+        CFLAGS="-L/usr/local/lib/python3.8/dist-packages/torch/lib ${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt " \
+        CXXFLAGS="-L/usr/local/lib/python3.8/dist-packages/torch/lib ${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt " \
+        LDFLAGS="-L/usr/local/lib/python3.8/dist-packages/torch/lib -shared ${PRISM_FLAGS}" \
+        python3 setup.py install && \
+        cd /tmp/ && python3 test_fuzzy_pytorch.py && python3 test_fuzzy_pytorch_grad.py
 
-ENV     PATH="/opt/conda/bin:${PATH}"
 
-COPY    --from=builder \
-        /opt/conda/lib/python3.6/site-packages/torch /opt/conda/lib/python3.6/site-packages/torch
-COPY    --from=builder \
-        /usr/local/lib/libinterflop_*.so /usr/local/lib/
-COPY    --from=builder \
-        /usr/lib/x86_64-linux-gnu/libomp.so.5 /usr/lib/x86_64-linux-gnu/
+ENV PYTHONPATH=/usr/local/lib/python3.8/dist-packages
 
-ENV     VFC_BACKENDS="libinterflop_mca.so"
+# Build torchaudio
+RUN cd /opt/build/ && \
+        git clone --depth=1 -b v2.2.1 https://github.com/pytorch/audio.git && \
+        cd audio && \
+        python3.8 -m pip install ffmpeg sentencepiece deep-phonemizer soundfile sox && \
+        CC=verificarlo-c CXX=verificarlo-c++ \
+        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma -shared" \
+        LDSHARED=verificarlo-c \
+        python3.8 -m pip install . -r requirements.txt
 
-ADD     resources/test_fuzzy_pytorch.sh .
-RUN     test_fuzzy_pytorch.sh && rm test_fuzzy_pytorch.sh
+# Build torchvision
+RUN cd /opt/build/ && \
+        git clone --depth=1 -b v0.17.2 https://github.com/pytorch/vision.git && \
+        cd vision && \
+        CC=verificarlo-c CXX=verificarlo-c++ \
+        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma -shared" \
+        LDSHARED=verificarlo-c \
+        python3.8 -m pip install .
 
-CMD ["bash"]
+# Runtime stage
+FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION}
+
+# Copy only necessary files from builder
+COPY --from=builder /usr/local/lib/ /usr/local/lib/
+COPY --from=builder /usr/local/include/ /usr/local/include/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=builder /usr/local/lib/python3.8/dist-packages/ /usr/local/lib/python3.8/dist-packages/
+
+# Set environment variables
+ENV VFC_BACKENDS="libinterflop_ieee.so"
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+ENV PYTHONPATH="/usr/local/lib/python3.8/dist-packages:${PYTHONPATH}"
+
+# Install runtime dependencies only
+RUN apt-get update -qqq && \
+        apt-get install -y --no-install-recommends -qqq \
+        python3.8 python3-pip libmpfr6 \
+        libreadline8 libsqlite3-0 && \
+        pip3 install --no-cache-dir typing_extensions && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+CMD ["/bin/bash"]

@@ -1,8 +1,8 @@
 ARG ORG=verificarlo
-ARG VERIFICARLO_VERSION=v2.0.0
+ARG VERIFICARLO_VERSION=v2.1.0
 FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack
 
-ARG PYTHON_VERSION=3.8.5
+ARG PYTHON_VERSION=3.8.20
 
 # Use IEEE mode for compiling with verificarlo
 RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
