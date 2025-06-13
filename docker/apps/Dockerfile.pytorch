@@ -1,13 +1,13 @@
 ARG ORG=verificarlo
 ARG VERIFICARLO_VERSION=v2.1.0
 ARG PRISM_MODE=sr
-ARG PRISM_DISPATCH=dynamic
+ARG PRISM_DISPATCH=static
 
 # Build stage
 FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION} AS builder
 
 # Common environment variables
-ENV PRISM_FLAGS="--prism-backend=sr --prism-backend-dispatch=dynamic --verbose --inst-fma"
+ENV PRISM_FLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose -march=native --inst-fma"
 ENV VFC_BACKENDS="libinterflop_ieee.so"
 
 # Setup build dependencies in a single layer
@@ -17,14 +17,15 @@ RUN apt-get update -qqq && \
         libbz2-dev libreadline-dev libsqlite3-dev wget \
         curl llvm libncurses5-dev libncursesw5-dev \
         xz-utils tk-dev wget fort77 gfortran cmake lzma-dev liblzma-dev \
-        libmpfr6 libmpfr-dev && \
+        libmpfr6 libmpfr-dev pybind11-dev python3-pybind11 && \
         mkdir -p /opt/build/ && \
-        pip install typing_extensions cmake ninja
+        pip install typing_extensions cmake ninja 
 
 # Copy necessary resources
 COPY docker/resources/lapack/blas-sanity-check.sh /tmp/blas-sanity-check.sh
 COPY docker/resources/lapack/test_blas.c /tmp/test_blas.c
 COPY docker/resources/pytorch/test_fuzzy_pytorch.py /tmp/test_fuzzy_pytorch.py
+COPY docker/resources/pytorch/test_fuzzy_pytorch_grad.py /tmp/test_fuzzy_pytorch_grad.py
 COPY docker/resources/pytorch/pytorch-vfc-exclude.txt /tmp/pytorch-vfc-exclude.txt
 
 # Build Lapack
@@ -46,17 +47,10 @@ RUN cd /opt/build/ && \
         make install && \
         cd /tmp/ && ./blas-sanity-check.sh
 
-# Install patched verificarlo
-RUN cd /opt/build && \
-        git clone --depth=1 -b v2.1.0 https://github.com/verificarlo/verificarlo.git && \
-        cd verificarlo && \
-        sed -i 's/prism_fatal_error("Function not found: " + functionName);/return PrismFunction(function, passing_style);/' src/libvfcinstrumentprism/libVFCInstrumentPRISM.cpp && \
-        ./autogen.sh && \
-        ./configure --with-llvm=$(llvm-config-7 --prefix) && \
-        make -C src/libvfcinstrumentprism && \
-        make -C src/libvfcinstrumentprism install
 
 # Build PyTorch
+# TODO: Found the issue with the commented lines below
+# One of these make the autograd engine fail at runtime
 RUN cd /opt/build/ && \
         git clone --depth=1 -b v2.2.1 https://github.com/pytorch/pytorch.git && \
         cd pytorch && \
@@ -64,6 +58,7 @@ RUN cd /opt/build/ && \
         git submodule update --init --recursive && \
         pip install -r requirements.txt && \
         sed -i '/Module(Module&&)/s/noexcept//g' torch/csrc/jit/api/module.h && \
+        sed -i '1i#include <iostream>' torch/binaries/dump_operator_names.cc && \
         mkdir -p build && \
         cd build && \
         cmake -GNinja \
@@ -75,11 +70,11 @@ RUN cd /opt/build/ && \
         -DCMAKE_C_COMPILER=verificarlo-c \
         -DCMAKE_C_FLAGS="${PRISM_FLAGS}" \
         -DCMAKE_ASM_COMPILER=verificarlo-c \
-        -DSTATIC_DISPATCH_BACKEND=CPU \
-        -DTP_BUILD_PYTHON=ON \
+        #        -DSTATIC_DISPATCH_BACKEND=CPU \
+        #        -DTP_BUILD_PYTHON=ON \
         -DTP_INSTALL_LIBDIR="/usr/local/lib/python3.8/dist-packages/torch/lib" \
-        -DBUILD_BINARY=OFF \
-        -DUSE_DISTRIBUTED=ON \
+        #        -DBUILD_BINARY=ON \
+        #        -DUSE_DISTRIBUTED=ON \
         -DUSE_CUDA=OFF \
         -DUSE_MKLDNN=OFF \
         -DUSE_NUMA=OFF \
@@ -88,12 +83,11 @@ RUN cd /opt/build/ && \
         -DBUILD_SHARED_LIBS=ON \
         -DBLAS_LIBRARIES="/usr/local/lib/libcblas.so" \
         -DBLAS=Generic \
-        -DWITH_BLAS=generic \
-        -DUSE_NATIVE_ARCH=OFF \
+        -DUSE_NATIVE_ARCH=ON \
         -DUSE_NUMPY=ON \
         -DBUILD_CAFFE2=ON \
         -DBUILD_CAFFE2_OPS=ON \
-        -DBUILD_ONNX_PYTHON=OFF \
+        #        -DBUILD_ONNX_PYTHON=ON \
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         .. && \
         ninja && \
@@ -102,10 +96,12 @@ RUN cd /opt/build/ && \
         CC=verificarlo-c \
         CXX=verificarlo-c++ \
         LDSHARED=verificarlo-c \
-        CFLAGS="-L/usr/local/lib/python3.8/dist-packages/torch/lib ${PRISM_FLAGS}" \
+        CFLAGS="-L/usr/local/lib/python3.8/dist-packages/torch/lib ${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt " \
+        CXXFLAGS="-L/usr/local/lib/python3.8/dist-packages/torch/lib ${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt " \
         LDFLAGS="-L/usr/local/lib/python3.8/dist-packages/torch/lib -shared ${PRISM_FLAGS}" \
         python3 setup.py install && \
-        cd /tmp/ && python3 test_fuzzy_pytorch.py
+        cd /tmp/ && python3 test_fuzzy_pytorch.py && python3 test_fuzzy_pytorch_grad.py
+
 
 ENV PYTHONPATH=/usr/local/lib/python3.8/dist-packages
 
@@ -115,11 +111,22 @@ RUN cd /opt/build/ && \
         cd audio && \
         python3.8 -m pip install ffmpeg sentencepiece deep-phonemizer soundfile sox && \
         CC=verificarlo-c CXX=verificarlo-c++ \
-        CFLAGS="--prism-backend=sr --prism-backend-dispatch=dynamic --verbose --inst-fma" \
-        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=dynamic --verbose --inst-fma" \
-        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=dynamic --verbose --inst-fma -shared" \
+        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma -shared" \
         LDSHARED=verificarlo-c \
         python3.8 -m pip install . -r requirements.txt
+
+# Build torchvision
+RUN cd /opt/build/ && \
+        git clone --depth=1 -b v0.17.2 https://github.com/pytorch/vision.git && \
+        cd vision && \
+        CC=verificarlo-c CXX=verificarlo-c++ \
+        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma" \
+        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose --inst-fma -shared" \
+        LDSHARED=verificarlo-c \
+        python3.8 -m pip install .
 
 # Runtime stage
 FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION}
@@ -139,7 +146,7 @@ ENV PYTHONPATH="/usr/local/lib/python3.8/dist-packages:${PYTHONPATH}"
 RUN apt-get update -qqq && \
         apt-get install -y --no-install-recommends -qqq \
         python3.8 python3-pip libmpfr6 \
-        libreadline7 libsqlite3-0 && \
+        libreadline8 libsqlite3-0 && \
         pip3 install --no-cache-dir typing_extensions && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
