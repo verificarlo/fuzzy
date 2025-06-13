@@ -48,6 +48,17 @@ RUN cd /opt/build/ && \
         cd /tmp/ && ./blas-sanity-check.sh
 
 
+# Install patched verificarlo
+# Will be remove with version v2.1.1
+RUN cd /opt/build && \
+        git clone --depth=1 -b v2.1.0 https://github.com/verificarlo/verificarlo.git && \
+        cd verificarlo && \
+        sed -i 's/prism_fatal_error("Function not found: " + functionName);/return PrismFunction(function, passing_style);/' src/libvfcinstrumentprism/libVFCInstrumentPRISM.cpp && \
+        ./autogen.sh && \
+        ./configure --with-llvm=$(llvm-config-7 --prefix) && \
+        make -C src/libvfcinstrumentprism && \
+        make -C src/libvfcinstrumentprism install
+
 # Build PyTorch
 # TODO: Found the issue with the commented lines below
 # One of these make the autograd engine fail at runtime
