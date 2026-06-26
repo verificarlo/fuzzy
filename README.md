@@ -1,4 +1,4 @@
-# Fuzzy v2.1.0
+# Fuzzy v2.5.1
 
 [![DOI](https://zenodo.org/badge/218554957.svg)](https://zenodo.org/badge/latestdoi/218554957)
 [![Build Fuzzy Environments](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml/badge.svg?branch=master)](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml)
@@ -14,7 +14,7 @@
 </div>
 
 ## Table of Contents
-- [Fuzzy v2.1.0](#fuzzy-v210)
+- [Fuzzy v2.5.1](#fuzzy-v251)
   - [Table of Contents](#table-of-contents)
   - [Motivation](#motivation)
   - [Usage](#usage)
