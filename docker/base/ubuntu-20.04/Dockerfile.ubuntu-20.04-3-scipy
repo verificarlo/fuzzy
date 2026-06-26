@@ -5,7 +5,6 @@ FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.20-numpy
 ARG SCIPY_VERSION=1.10.1
 
 # Copy sanity check for SciPy
-COPY docker/resources/scipy-vfc-exclude.txt /tmp/scipy-vfc-exclude.txt
 COPY docker/resources/scipy-sanity-check.py /tmp/scipy-sanity-check.py
 
 # Load backend IEEE

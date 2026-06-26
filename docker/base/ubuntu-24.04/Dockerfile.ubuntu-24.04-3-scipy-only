@@ -1,0 +1,109 @@
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.5.1
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-numpy
+
+ARG SCIPY_VERSION=1.18.0
+
+# Copy sanity check for SciPy
+COPY docker/resources/scipy-sanity-check.py /tmp/scipy-sanity-check.py
+
+# Load backend IEEE
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
+  # Remove SciPy inherited from Verificarlo's Python dependencies.
+  python3 -m pip uninstall --break-system-packages -y scipy || true && \
+  printf '%s\n' \
+  '#!/bin/bash' \
+  'if [ "$1" = "--version" ]; then exec clang --version; fi' \
+  'compile=false' \
+  'for arg in "$@"; do [ "$arg" = "-c" ] && compile=true; done' \
+  'if ! $compile; then' \
+  '  args=()' \
+  '  for arg in "$@"; do' \
+  '    case "$arg" in' \
+  '      --inst-fma|--exclude-file=*) ;;' \
+  '      @*) rsp="${arg#@}"; clean="$(mktemp)"; sed -e "s/--inst-fma//g" -e "s/--exclude-file=[^[:space:]]*//g" "$rsp" > "$clean"; args+=("@$clean") ;;' \
+  '      *) args+=("$arg") ;;' \
+  '    esac' \
+  '  done' \
+  '  exec verificarlo-c "${args[@]}"' \
+  'fi' \
+  'exec verificarlo-c "$@"' \
+  > /usr/local/bin/meson-verificarlo-c && \
+  printf '%s\n' \
+  '#!/bin/bash' \
+  'if [ "$1" = "--version" ]; then exec clang++ --version; fi' \
+  'compile=false' \
+  'for arg in "$@"; do [ "$arg" = "-c" ] && compile=true; done' \
+  'if ! $compile; then' \
+  '  args=()' \
+  '  for arg in "$@"; do' \
+  '    case "$arg" in' \
+  '      --inst-fma|--exclude-file=*) ;;' \
+  '      @*) rsp="${arg#@}"; clean="$(mktemp)"; sed -e "s/--inst-fma//g" -e "s/--exclude-file=[^[:space:]]*//g" "$rsp" > "$clean"; args+=("@$clean") ;;' \
+  '      *) args+=("$arg") ;;' \
+  '    esac' \
+  '  done' \
+  '  exec verificarlo-c++ "${args[@]}"' \
+  'fi' \
+  'exec verificarlo-c++ "$@"' \
+  > /usr/local/bin/meson-verificarlo-c++ && \
+  printf '%s\n' \
+  '#!/bin/bash' \
+  'for arg in "$@"; do' \
+  '  case "$arg" in' \
+  '    --version|-V|-v|-dumpversion|-dumpmachine|-E) exec gfortran "$@" ;;' \
+  '  esac' \
+  'done' \
+  'args=()' \
+  'for arg in "$@"; do' \
+  '  case "$arg" in' \
+  '    -fvisibility=*|-std=legacy) ;;' \
+  '    *) args+=("$arg") ;;' \
+  '  esac' \
+  'done' \
+  'exec verificarlo-f "${args[@]}"' \
+  > /usr/local/bin/meson-verificarlo-f && \
+  chmod +x /usr/local/bin/meson-verificarlo-c \
+  /usr/local/bin/meson-verificarlo-c++ \
+  /usr/local/bin/meson-verificarlo-f && \
+  apt-get update && apt-get install -y --no-install-recommends git patchelf && \
+  cd /opt/build/ && \
+  git clone --depth=1 --branch v${SCIPY_VERSION} --recurse-submodules --shallow-submodules https://github.com/scipy/scipy.git scipy-${SCIPY_VERSION} && \
+  cd scipy-${SCIPY_VERSION} && \
+  sed -i  "s/f2py_version = run_command(\[f2py, '-v'\], check: true).stdout().strip()/f2py_version = run_command(py3, ['-I', '-m', 'numpy.f2py', '-v'], check: true).stdout().strip()/g" scipy/meson.build
+
+RUN python3 -m pip install --break-system-packages ninja cython pythran pybind11 meson-python meson packaging wheel pytest pytest-xdist pytest-timeout pooch hypothesis "click<8.3.0" tempita && \
+  sed -i 's/^assert width_smallest_normals\[64\] == float_info\.min/# &/' /usr/local/lib/python3.12/site-packages/hypothesis/internal/floats.py
+
+RUN cd /opt/build && \
+  CC="meson-verificarlo-c" \
+  CXX="meson-verificarlo-c++" \
+  FC="meson-verificarlo-f" \
+  F77="meson-verificarlo-f" \
+  F90="meson-verificarlo-f" \
+  CFLAGS="--inst-fma" \
+  CXXFLAGS="--inst-fma" \
+  FFLAGS="--inst-fma" \
+  LDFLAGS="" \
+  python3 -m pip install --break-system-packages --no-build-isolation --no-deps -v /opt/build/scipy-${SCIPY_VERSION} \
+  -Ccompile-args="-j$(nproc)" \
+  -Csetup-args=-Dblas=blas \
+  -Csetup-args=-Dlapack=lapack
+
+RUN \
+  # Set default MCA mode 
+  echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
+  # Sanity check
+  cd && pytest /tmp/scipy-sanity-check.py && \
+  rm -rf /opt/build/*
+
+# Restore default behavior for verificarlo's CC
+ENV CC="verificarlo-c"
+ENV CXX="verificarlo-c++"
+ENV FC="verificarlo-f"
+ENV F77="verificarlo-f"
+ENV F90="verificarlo-f"
+# Needed for scipy to find the shared libraries (libpgmath)
+ENV LD_LIBRARY_PATH=/lib/x86_64-linux-gnu/:${LD_LIBRARY_PATH}
+
+ENTRYPOINT [ "/bin/bash"]

@@ -1,0 +1,26 @@
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.5.1
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.12.13-numpy-scipy
+
+ARG SKLEARN_VERSION=1.9.0
+
+COPY docker/resources/sklearn-sanity-check.py /tmp/
+
+# Load backend IEEE
+RUN \
+  echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE  && \
+  cd /opt/build && \
+  wget https://github.com/scikit-learn/scikit-learn/archive/refs/tags/${SKLEARN_VERSION}.tar.gz &&\
+  tar xf ${SKLEARN_VERSION}.tar.gz &&\
+  cd scikit-learn-${SKLEARN_VERSION} &&\
+  CC="meson-verificarlo-c" FC="meson-verificarlo-f" CXX="meson-verificarlo-c++" \
+  CFLAGS="--inst-fma" \
+  CXXFLAGS="--inst-fma" \
+  FFLAGS="--inst-fma" \
+  python3 -m pip install --verbose . -Cbuild-dir=/tmp/sklearn-meson-build && \
+  # Remove temporary files
+  echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
+  cd && pytest /tmp/sklearn-sanity-check.py && \
+  rm -rf /opt/build/*
+
+ENTRYPOINT [ "/bin/bash" ]

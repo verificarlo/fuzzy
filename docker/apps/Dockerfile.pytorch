@@ -1,13 +1,14 @@
 ARG ORG=verificarlo
-ARG VERIFICARLO_VERSION=v2.1.0
+ARG VERIFICARLO_VERSION=v2.5.1
 ARG PRISM_MODE=sr
 ARG PRISM_DISPATCH=static
+ARG ARCH=native
 
 # Build stage
 FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION} AS builder
 
 # Common environment variables
-ENV PRISM_FLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose -march=native --inst-fma"
+ENV PRISM_FLAGS="--prism-backend=sr --prism-backend-dispatch=static --verbose -march=${ARCH} --inst-fma"
 ENV VFC_BACKENDS="libinterflop_ieee.so"
 
 # Setup build dependencies in a single layer

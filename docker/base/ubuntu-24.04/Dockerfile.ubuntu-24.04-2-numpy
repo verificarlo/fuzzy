@@ -1,0 +1,106 @@
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.5.1
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.12.13
+
+ARG NUMPY_VERSION=2.4.6
+
+# Copy verificarlo's exclusion file for Python 3
+COPY docker/resources/numpy-vfc-exclude.txt /tmp/numpy-vfc-exclude.txt
+COPY docker/resources/numpy-sanity-check.py /tmp/numpy-sanity-check.py
+
+# Use IEEE mode for compiling with verificarlo
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
+    # Remove NumPy/SciPy inherited from Verificarlo's Python dependencies.
+    python3 -m pip uninstall --break-system-packages -y numpy scipy || true && \
+    # Build numpy from sources and link with the local BLAS and LAPACK
+    cd /opt/build/ &&\
+    wget https://github.com/numpy/numpy/releases/download/v${NUMPY_VERSION}/numpy-${NUMPY_VERSION}.tar.gz &&\
+    tar xf numpy-${NUMPY_VERSION}.tar.gz 
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'if [ "$1" = "--version" ]; then exec clang --version; fi' \
+    'compile=false' \
+    'for arg in "$@"; do [ "$arg" = "-c" ] && compile=true; done' \
+    'if ! $compile; then' \
+    '  args=()' \
+    '  for arg in "$@"; do' \
+    '    case "$arg" in' \
+    '      --inst-fma|--exclude-file=*) ;;' \
+    '      @*) rsp="${arg#@}"; clean="$(mktemp)"; sed -e "s/--inst-fma//g" -e "s/--exclude-file=[^[:space:]]*//g" "$rsp" > "$clean"; args+=("@$clean") ;;' \
+    '      *) args+=("$arg") ;;' \
+    '    esac' \
+    '  done' \
+    '  exec verificarlo-c "${args[@]}"' \
+    'fi' \
+    'exec verificarlo-c "$@"' \
+    > /usr/local/bin/meson-verificarlo-c && \
+    printf '%s\n' \
+    '#!/bin/bash' \
+    'if [ "$1" = "--version" ]; then exec clang++ --version; fi' \
+    'compile=false' \
+    'for arg in "$@"; do [ "$arg" = "-c" ] && compile=true; done' \
+    'if ! $compile; then' \
+    '  args=()' \
+    '  for arg in "$@"; do' \
+    '    case "$arg" in' \
+    '      --inst-fma|--exclude-file=*) ;;' \
+    '      @*) rsp="${arg#@}"; clean="$(mktemp)"; sed -e "s/--inst-fma//g" -e "s/--exclude-file=[^[:space:]]*//g" "$rsp" > "$clean"; args+=("@$clean") ;;' \
+    '      *) args+=("$arg") ;;' \
+    '    esac' \
+    '  done' \
+    '  exec verificarlo-c++ "${args[@]}"' \
+    'fi' \
+    'exec verificarlo-c++ "$@"' \
+    > /usr/local/bin/meson-verificarlo-c++ && \
+    printf '%s\n' \
+    '#!/bin/bash' \
+    'for arg in "$@"; do' \
+    '  case "$arg" in' \
+    '    --version|-V|-v|-dumpversion|-dumpmachine|-E) exec gfortran "$@" ;;' \
+    '  esac' \
+    'done' \
+    'args=()' \
+    'for arg in "$@"; do' \
+    '  case "$arg" in' \
+    '    -fvisibility=*|-std=legacy) ;;' \
+    '    *) args+=("$arg") ;;' \
+    '  esac' \
+    'done' \
+    'exec verificarlo-f "${args[@]}"' \
+    > /usr/local/bin/meson-verificarlo-f && \
+    chmod +x /usr/local/bin/meson-verificarlo-c \
+    /usr/local/bin/meson-verificarlo-c++ \
+    /usr/local/bin/meson-verificarlo-f
+
+RUN cd /opt/build/numpy-${NUMPY_VERSION} && \
+    python3 -m pip install --break-system-packages -r requirements/build_requirements.txt && \
+    # NumPy adds -ftrapping-math for Clang, which emits LLVM constrained FP
+    # intrinsics that Verificarlo does not currently rewrite.
+    sed -i '55,80s/^/# /' meson.build && \
+    CC="meson-verificarlo-c" \
+    CXX="meson-verificarlo-c++" \
+    FC="meson-verificarlo-f" \
+    CFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
+    CXXFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
+    FFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
+    LDFLAGS="--exclude-file=/tmp/numpy-vfc-exclude.txt --inst-fma" \
+    python3 -m pip install --break-system-packages --no-build-isolation --no-deps . \
+    -Csetup-args=-Dblas=blas \
+    -Csetup-args=-Dlapack=lapack \
+    -Csetup-args=-Dallow-noblas=false \
+    -Csetup-args=-Dcpu-baseline=none \
+    -Csetup-args=-Dcpu-dispatch=none
+
+RUN \
+    pip install pygments pyyaml && \
+    python3 -c "import numpy as np; np.show_config(); print('NumPy version:', np.__version__)" && \
+    # Smoked test for vectorization.
+    # We should run the full numpy test suit in next versions    
+    # Restore default MCA mode
+    echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
+    cd && pytest /tmp/numpy-sanity-check.py && \
+    # Remove temporary files
+    rm -rf /opt/build/* 
+
+ENTRYPOINT [ "/bin/bash" ]

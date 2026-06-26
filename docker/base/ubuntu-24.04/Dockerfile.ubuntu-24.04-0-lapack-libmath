@@ -1,0 +1,69 @@
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.5.1
+FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION}
+
+# Setup build dependencies
+RUN apt-get update -qqq &&\
+    apt-get install -y --no-install-recommends -qqq \
+    make build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev wget \
+    curl llvm libncurses5-dev  libncursesw5-dev \
+    xz-utils tk-dev wget fort77 gfortran cmake lzma-dev liblzma-dev \
+    libmpfr6 libmpfr-dev libquadmath0 &&\
+    rm -rf /var/lib/apt/lists/ &&\
+    mkdir -p /opt/build/
+
+# Copy verificarlo's exclusion file for Python 3
+COPY docker/resources/python-vfc-exclude.txt /tmp/python-vfc-exclude.txt
+COPY docker/resources/libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
+
+# Setting compilers and linkers to use verificarlo
+ENV CC="verificarlo-c"
+ENV CXX="verificarlo-c++"
+ENV FC="verificarlo-f"
+ENV LDSHARED="verificarlo-c"
+
+# Setting verificarlo's backend file
+ENV VFC_BACKENDS_FROM_FILE=/opt/vfc-backends.txt
+
+# Copy libmath source code
+COPY docker/resources/libmath/ /opt/mca-libmath/
+
+# Load backend IEEE and
+# create instrumented shared mathematical library
+RUN mkdir -p /opt/ && \
+    echo "libinterflop_ieee.so" > /opt/vfc-backends.txt && \
+    cd /opt/mca-libmath/ && \
+    make && \
+    make test
+
+# Build BLAS and LAPACK from the following URL's instructions:
+#  http://ab-initio.mit.edu/wiki/index.php/Template:Installing_BLAS_and_LAPACK
+RUN cd /opt/build/ && \
+    wget https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz && \
+    tar xf v3.12.1.tar.gz && \
+    cd /opt/build/lapack-3.12.1/ && \
+    mkdir build && \
+    cd /opt/build/lapack-3.12.1/build && \
+    cmake \
+    -DCMAKE_BUILD_TYPE=RELEASE \
+    -DCBLAS=ON -DBUILD_SHARED_LIBS=ON \
+    -DCMAKE_C_FLAGS="--inst-fma" \
+    -DCMAKE_Fortran_FLAGS="--inst-fma" \
+    -DCMAKE_C_COMPILER=verificarlo-c \
+    -DCMAKE_Fortran_COMPILER=verificarlo-f \
+    .. && \
+    make -j $(nproc) && \
+    make install && \
+    rm -rf /opt/build/*
+
+# Preload the instrumented shared library
+ENV VFC_BACKENDS_LOGGER="False"
+ENV VFC_BACKENDS_SILENT_LOAD="True"
+ARG FUZZY_LIBMATH_VERSION=standard
+
+RUN echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
+    set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
+
+# Set bash shell as entrypoint
+ENTRYPOINT [ "/bin/bash"]

@@ -1,0 +1,30 @@
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.5.1
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack
+
+ARG PYTHON_VERSION=3.12.13
+
+# Use IEEE mode for compiling with verificarlo
+RUN echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE && \
+    # Remove any existing python packages
+    apt -y -qqq remove python3 && \
+    # Build Python from source and the associated pip
+    cd /opt/build/ && \
+    wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz && \
+    tar xf Python-${PYTHON_VERSION}.tar.xz && \
+    cd Python-${PYTHON_VERSION} && \
+    LDFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" \
+    CFLAGS="--exclude-file=/tmp/python-vfc-exclude.txt" \
+    LDSHARED='verificarlo-c -shared' \
+    ./configure --with-ensurepip=install && \
+    make -j $(nproc) && \
+    make install && \
+    wget https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py && \
+    # Remove temporary files
+    rm -rf /opt/build/* && \
+    # Restore default MCA mode
+    echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE
+
+# Set entrypoint
+ENTRYPOINT [ "/bin/bash"]

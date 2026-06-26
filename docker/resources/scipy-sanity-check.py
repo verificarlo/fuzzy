@@ -3,7 +3,7 @@ import scipy.linalg
 import numpy as np
 
 import scipy.special
-from scipy.optimize import _minpack2 as minpack2
+import scipy.optimize
 
 
 def test_inv():
