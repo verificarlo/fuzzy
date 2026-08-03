@@ -1,6 +1,6 @@
 # Fuzzy v2.5.1
 
-[![DOI](https://zenodo.org/badge/218554957.svg)](https://zenodo.org/badge/latestdoi/218554957)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20906259-blue)](https://zenodo.org/badge/latestdoi/218554957)
 [![Build Fuzzy Environments](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml/badge.svg?branch=master)](https://github.com/verificarlo/fuzzy/actions/workflows/build-fuzzy.yml)
 [![Docker Pulls](https://img.shields.io/docker/pulls/verificarlo/fuzzy)](https://hub.docker.com/r/verificarlo/fuzzy)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://releases.llvm.org/13.0.0/LICENSE.TXT)
