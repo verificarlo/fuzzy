@@ -9,7 +9,7 @@ RUN apt-get update -qqq &&\
     libbz2-dev libreadline-dev libsqlite3-dev wget \
     curl llvm libncurses5-dev  libncursesw5-dev \
     xz-utils tk-dev wget fort77 gfortran cmake lzma-dev liblzma-dev \
-    libmpfr6 libmpfr-dev libquadmath0 &&\
+    libmpfr6 libmpfr-dev libquadmath0 patchelf &&\
     rm -rf /var/lib/apt/lists/ &&\
     mkdir -p /opt/build/
 
