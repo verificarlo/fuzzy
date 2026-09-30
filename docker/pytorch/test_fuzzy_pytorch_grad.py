@@ -84,7 +84,8 @@ def test_autograd():
     print(f"   y = x^2 = {y.item()}")
     print(f"   Expected gradient dy/dx = {expected_grad}")
     print(f"   Actual gradient = {actual_grad}")
-    print(f"   ✓ Test passed: {abs(actual_grad - expected_grad) < 1e-6}")
+    assert abs(actual_grad - expected_grad) < 1e-6
+    print("   ✓ Test passed")
 
     # Test 2: Multi-variable gradient
     print("\n2. Multi-variable gradient test:")
@@ -103,8 +104,9 @@ def test_autograd():
     print(f"   z = xy + x^2 = {z.item()}")
     print(f"   Expected dz/dx = {expected_dx}, Actual = {x.grad.item()}")
     print(f"   Expected dz/dy = {expected_dy}, Actual = {y.grad.item()}")
-    print(f"   ✓ dx test passed: {abs(x.grad.item() - expected_dx) < 1e-6}")
-    print(f"   ✓ dy test passed: {abs(y.grad.item() - expected_dy) < 1e-6}")
+    assert abs(x.grad.item() - expected_dx) < 1e-6
+    assert abs(y.grad.item() - expected_dy) < 1e-6
+    print("   ✓ dx and dy tests passed")
 
     # Test 3: Chain rule with tensor operations
     print("\n3. Chain rule test:")
@@ -124,7 +126,8 @@ def test_autograd():
     grad_test_passed = all(
         abs(a - e) < 1e-6 for a, e in zip(actual_grads, expected_grads)
     )
-    print(f"   ✓ Chain rule test passed: {grad_test_passed}")
+    assert grad_test_passed
+    print("   ✓ Chain rule test passed")
 
     # Test 4: Neural network-like computation
     print("\n4. Neural network-like test:")
@@ -144,8 +147,8 @@ def test_autograd():
     print(f"   Input shape: {x.shape}")
     print(f"   Output shape: {y.shape}")
     print(f"   Loss: {loss.item():.4f}")
-    print(f"   ✓ Weight gradients computed: {W.grad is not None}")
-    print(f"   ✓ Bias gradients computed: {b.grad is not None}")
+    assert W.grad is not None and b.grad is not None
+    print("   ✓ Weight and bias gradients computed")
     print(f"   Weight grad shape: {W.grad.shape}")
     print(f"   Bias grad shape: {b.grad.shape}")
 

@@ -1,18 +1,19 @@
-# PyTorch 2.2.1, LAPACK, torchaudio and torchvision compiled with Verificarlo's
+# PyTorch, LAPACK, torchaudio and torchvision compiled with Verificarlo's
 # PRISM stochastic-rounding pass, on top of Dockerfile.verificarlo. This is the
-# recipe of verificarlo/fuzzy:v2.6.0-pytorch2.2.1-<isa>; containers/build.sh
-# passes ORG, VERIFICARLO_VERSION, MARCH and ISA. Adapted from
-# github.com/pablooliveira/fuzzy-pytorch (containers/Dockerfile-pytorch-sr):
-# MARCH replaces -march=native, and PyTorch's USE_NATIVE_ARCH is off, so the
-# image targets the chosen x86-64 level rather than the build machine.
-ARG ORG=verificarlo
-ARG VERIFICARLO_VERSION=v2.5.1
-ARG PRISM_MODE=sr
-ARG PRISM_DISPATCH=static
+# recipe of verificarlo/fuzzy:<verificarlo>-pytorch<torch>-<isa>; build.sh
+# passes BASE, MARCH and ISA. Build context: the repository root.
+# Adapted from github.com/pablooliveira/fuzzy-pytorch
+# (containers/Dockerfile-pytorch-sr): MARCH replaces -march=native, and
+# PyTorch's USE_NATIVE_ARCH is off, so the image targets the chosen x86-64
+# level rather than the build machine.
+ARG BASE=verificarlo/verificarlo:v2.6.0
 
 # Build stage
-FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION} AS builder
+FROM ${BASE} AS builder
 ARG MARCH=native
+ARG PYTORCH_VERSION=2.2.1
+ARG TORCHAUDIO_VERSION=2.2.1
+ARG TORCHVISION_VERSION=0.17.2
 
 # Common environment variables
 ENV PRISM_FLAGS="--prism-backend=sr --prism-backend-dispatch=static -march=${MARCH} --inst-fma"
@@ -34,11 +35,12 @@ RUN apt-get update -qqq && \
         pip install typing_extensions cmake ninja "setuptools>=69.0"
     
 # Copy necessary resources
-COPY resources/lapack/blas-sanity-check.sh /tmp/blas-sanity-check.sh
+COPY docker/resources/lapack/blas-sanity-check.sh /tmp/blas-sanity-check.sh
 RUN chmod +x /tmp/blas-sanity-check.sh
-COPY resources/lapack/test_blas.c /tmp/test_blas.c
-COPY resources/pytorch/test_fuzzy_pytorch.py /tmp/test_fuzzy_pytorch.py
-COPY resources/pytorch/pytorch-vfc-exclude.txt /tmp/pytorch-vfc-exclude.txt
+COPY docker/resources/lapack/test_blas.c /tmp/test_blas.c
+COPY docker/pytorch/test_fuzzy_pytorch.py /tmp/test_fuzzy_pytorch.py
+COPY docker/pytorch/test_fuzzy_pytorch_grad.py /tmp/test_fuzzy_pytorch_grad.py
+COPY docker/pytorch/pytorch-vfc-exclude.txt /tmp/pytorch-vfc-exclude.txt
 
 # Build Lapack
 RUN cd /opt/build/ && \
@@ -62,9 +64,9 @@ RUN cd /opt/build/ && \
 RUN pip install --no-binary numpy "numpy<2"
 
 
-# Build PyTorch -- inference version was 2.2.1 for training we are working with 2.6.0
+# Build PyTorch
 RUN cd /opt/build/ && \
-        git clone --depth=1 -b v2.2.1 https://github.com/pytorch/pytorch.git && \
+        git clone --depth=1 -b v${PYTORCH_VERSION} https://github.com/pytorch/pytorch.git && \
         cd pytorch && \
         git submodule sync && \
         git submodule update --init --recursive && \
@@ -113,19 +115,19 @@ RUN cd /opt/build/pytorch/build && \
         LDFLAGS="-L/usr/local/lib/python3.12/dist-packages/torch/lib -shared -fopenmp ${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
         python3 setup.py install
 
-RUN cd /tmp/ && python3 test_fuzzy_pytorch.py
+RUN cd /tmp/ && python3 test_fuzzy_pytorch.py && python3 test_fuzzy_pytorch_grad.py
 
 ENV PYTHONPATH=/usr/local/lib/python3.12/dist-packages
 
 # Build torchaudio
 RUN cd /opt/build/ && \
-        git clone --depth=1 -b v2.2.1 https://github.com/pytorch/audio.git && \
+        git clone --depth=1 -b v${TORCHAUDIO_VERSION} https://github.com/pytorch/audio.git && \
         cd audio && \
         python3 -m pip install ffmpeg sentencepiece deep-phonemizer soundfile sox && \
         CC=verificarlo-c CXX=verificarlo-c++ \
-        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -Wno-missing-template-arg-list-after-template-kw --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
-        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -Wno-missing-template-arg-list-after-template-kw --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
-        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -Wno-missing-template-arg-list-after-template-kw -shared -fopenmp --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        CFLAGS="${PRISM_FLAGS} -Wno-missing-template-arg-list-after-template-kw --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        CXXFLAGS="${PRISM_FLAGS} -Wno-missing-template-arg-list-after-template-kw --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        LDFLAGS="${PRISM_FLAGS} -Wno-missing-template-arg-list-after-template-kw -shared -fopenmp --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
         LDSHARED=verificarlo-c \
         python3 -m pip install --no-build-isolation . -r requirements.txt
 
@@ -133,7 +135,7 @@ RUN cd /opt/build/ && \
 # Build torchvision
 RUN pip install "setuptools==69.5.1" && \
         cd /opt/build/ && \
-        git clone --depth=1 -b v0.17.2 https://github.com/pytorch/vision.git && \
+        git clone --depth=1 -b v${TORCHVISION_VERSION} https://github.com/pytorch/vision.git && \
         cd vision && \
         echo '#include <string>' >> torchvision/csrc/vision.cpp && \
         echo 'extern "C" const char* c10_error_what_impl(const void* self) {' >> torchvision/csrc/vision.cpp && \
@@ -144,9 +146,9 @@ RUN pip install "setuptools==69.5.1" && \
         echo 'asm("_ZNK3c105Error4whatEv:");' >> torchvision/csrc/vision.cpp && \
         echo 'asm("jmp c10_error_what_impl");' >> torchvision/csrc/vision.cpp && \
         CC=verificarlo-c CXX=verificarlo-c++ \
-        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
-        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
-        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -shared --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        CFLAGS="${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        CXXFLAGS="${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        LDFLAGS="${PRISM_FLAGS} -shared --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
         LDSHARED=verificarlo-c \
         python3 -m pip install --no-build-isolation --break-system-packages --no-deps .
 
@@ -154,10 +156,12 @@ RUN pip install "setuptools==69.5.1" && \
 RUN pip install --break-system-packages 'transformers==4.40.0'
 
 # Runtime stage
-FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION}
+FROM ${BASE}
 ARG MARCH=native
 ARG ISA=native
-LABEL org.verificarlo.fuzzy.isa=${ISA} org.verificarlo.fuzzy.march=${MARCH} org.verificarlo.version=v2.6.0 org.pytorch.version=2.2.1
+ARG VERIFICARLO_VERSION=v2.6.0
+ARG PYTORCH_VERSION=2.2.1
+LABEL org.verificarlo.fuzzy.isa=${ISA} org.verificarlo.fuzzy.march=${MARCH} org.verificarlo.version=${VERIFICARLO_VERSION} org.pytorch.version=${PYTORCH_VERSION}
 
 # Copy only necessary files from builder
 COPY --from=builder /usr/local/lib/ /usr/local/lib/

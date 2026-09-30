@@ -5,7 +5,12 @@
 # Verificarlo v2.6.0's own Dockerfile with two changes, both marked below, so
 # that PRISM's static kernels target a chosen x86-64 level instead of the
 # build machine's CPU. The build context is a Verificarlo v2.6.0 checkout with
-# its PRISM submodule; containers/build.sh sets it up.
+# its PRISM submodule; docker/pytorch/build.sh sets it up.
+#
+# Both changes are proposed upstream: change 1 in verificarlo/verificarlo#392,
+# change 2 in verificarlo/prism#20. Once a Verificarlo release includes both,
+# build.sh can use that release's own Dockerfile with
+# --build-arg PRISM_ARCH=<march> and this file can go.
 #
 
 ARG UBUNTU_VERSION=ubuntu:24.04
