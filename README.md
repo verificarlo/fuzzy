@@ -22,6 +22,7 @@
       - [Adding your software](#adding-your-software)
       - [Fuzzy-libmath](#fuzzy-libmath)
       - [Using Fuzzy in Multi-stage builds](#using-fuzzy-in-multi-stage-builds)
+      - [Fuzzy PyTorch](#fuzzy-pytorch)
       - [Running Fuzzy workflows](#running-fuzzy-workflows)
       - [Quick overview of Monte Carlo Arithmetic](#quick-overview-of-monte-carlo-arithmetic)
       - [Common failures](#common-failures)
@@ -219,6 +220,20 @@ RUN set-fuzzy-libmath --version=${FUZZY_LIBMATH_VERSION}
 
 ENV VFC_BACKENDS 'libinterflop_mca.so --precision-binary32=24 --precision-binary64=53 --mode=mca'
 ```
+
+#### Fuzzy PyTorch
+
+PyTorch 2.2.1, torchaudio and torchvision compiled with Verificarlo's PRISM
+stochastic-rounding backend come as one image per x86-64 instruction set:
+
+```bash
+docker run -ti verificarlo/fuzzy:v2.6.0-pytorch2.2.1-avx2   # or -sse2, -sse4, -avx512
+```
+
+Use the widest variant your CPU supports, and keep the same tag for a whole
+study: variants with and without hardware FMA can differ in the last digits.
+See [docker/pytorch/README.md](docker/pytorch/README.md) for the variants and
+how to build them.
 
 #### Running Fuzzy workflows
 In the context of *Fuzzy* experiments, it is important to remember that by default
