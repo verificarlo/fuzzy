@@ -1,0 +1,178 @@
+# PyTorch 2.2.1, LAPACK, torchaudio and torchvision compiled with Verificarlo's
+# PRISM stochastic-rounding pass, on top of Dockerfile.verificarlo. This is the
+# recipe of verificarlo/fuzzy:v2.6.0-pytorch2.2.1-<isa>; containers/build.sh
+# passes ORG, VERIFICARLO_VERSION, MARCH and ISA. Adapted from
+# github.com/pablooliveira/fuzzy-pytorch (containers/Dockerfile-pytorch-sr):
+# MARCH replaces -march=native, and PyTorch's USE_NATIVE_ARCH is off, so the
+# image targets the chosen x86-64 level rather than the build machine.
+ARG ORG=verificarlo
+ARG VERIFICARLO_VERSION=v2.5.1
+ARG PRISM_MODE=sr
+ARG PRISM_DISPATCH=static
+
+# Build stage
+FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION} AS builder
+ARG MARCH=native
+
+# Common environment variables
+ENV PRISM_FLAGS="--prism-backend=sr --prism-backend-dispatch=static -march=${MARCH} --inst-fma"
+ENV VFC_BACKENDS="libinterflop_ieee.so"
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV OPENBLAS=None
+ENV BLAS=/usr/local/lib/libblas.so
+ENV LAPACK=/usr/local/lib/liblapack.so
+
+# Setup build dependencies in a single layer
+RUN apt-get update -qqq && \
+        apt-get install -y --no-install-recommends -qqq \
+        make build-essential libssl-dev zlib1g-dev \
+        libbz2-dev libreadline-dev libsqlite3-dev wget \
+        curl libncurses-dev \
+        xz-utils tk-dev wget fort77 gfortran cmake lzma-dev liblzma-dev \
+        libmpfr6 libmpfr-dev pybind11-dev python3-pybind11 && \
+        mkdir -p /opt/build/ && \
+        pip install typing_extensions cmake ninja "setuptools>=69.0"
+    
+# Copy necessary resources
+COPY resources/lapack/blas-sanity-check.sh /tmp/blas-sanity-check.sh
+RUN chmod +x /tmp/blas-sanity-check.sh
+COPY resources/lapack/test_blas.c /tmp/test_blas.c
+COPY resources/pytorch/test_fuzzy_pytorch.py /tmp/test_fuzzy_pytorch.py
+COPY resources/pytorch/pytorch-vfc-exclude.txt /tmp/pytorch-vfc-exclude.txt
+
+# Build Lapack
+RUN cd /opt/build/ && \
+        wget https://github.com/Reference-LAPACK/lapack/archive/refs/tags/v3.12.1.tar.gz && \
+        tar xf v3.12.1.tar.gz && \
+        cd /opt/build/lapack-3.12.1/ && \
+        mkdir build && \
+        cd /opt/build/lapack-3.12.1/build && \
+        cmake \
+        -DCMAKE_BUILD_TYPE=RELEASE \
+        -DCBLAS=ON -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_C_FLAGS="${PRISM_FLAGS}" \
+        -DCMAKE_Fortran_FLAGS="${PRISM_FLAGS}" \
+        -DCMAKE_C_COMPILER=verificarlo-c \
+        -DCMAKE_Fortran_COMPILER=verificarlo-f \
+        .. && \
+        make -j $(nproc) && \
+        make install && \
+        cd /tmp/ && ./blas-sanity-check.sh
+
+RUN pip install --no-binary numpy "numpy<2"
+
+
+# Build PyTorch -- inference version was 2.2.1 for training we are working with 2.6.0
+RUN cd /opt/build/ && \
+        git clone --depth=1 -b v2.2.1 https://github.com/pytorch/pytorch.git && \
+        cd pytorch && \
+        git submodule sync && \
+        git submodule update --init --recursive && \
+        find . \( -name CMakeLists.txt -o -name "*.cmake" \) -exec sed -i 's/-Werror//g' {} + && \
+        pip install -r requirements.txt && \
+        sed -i '/Module(Module&&)/s/noexcept//g' torch/csrc/jit/api/module.h && \
+        mkdir -p build && \
+        cd build && \
+        cmake -GNinja \
+        -DCMAKE_INSTALL_PREFIX="/usr/local/lib/python3.12/dist-packages/torch" \
+        -DPYTHON_EXECUTABLE="/usr/bin/python3" \
+        -DCMAKE_MODULE_PATH="${PWD}/cmake/public" \
+        -DCMAKE_CXX_COMPILER=verificarlo-c++ \
+        -DCMAKE_CXX_FLAGS="${PRISM_FLAGS} -Wno-missing-template-arg-list-after-template-kw --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        -DCMAKE_C_COMPILER=verificarlo-c \
+        -DCMAKE_C_FLAGS="${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        -DCMAKE_ASM_COMPILER=verificarlo-c \
+        -DTP_INSTALL_LIBDIR="/usr/local/lib/python3.12/dist-packages/torch/lib" \
+        -DUSE_CUDA=OFF \
+        -DUSE_MKLDNN=OFF \
+        -DUSE_NUMA=OFF \
+        -DUSE_FBGEMM=ON \
+        -DUSE_LAPACK=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DBLAS_LIBRARIES="/usr/local/lib/libcblas.so;/usr/local/lib/libblas.so" \
+        -DBLAS_INCLUDE_DIRS="/usr/local/include" \
+        -DBLAS=Generic \
+        -DLAPACK_LIBRARIES="/usr/local/lib/liblapack.so" \
+        -DUSE_NATIVE_ARCH=OFF \
+        -DUSE_NUMPY=ON \
+        -DBUILD_CAFFE2=ON \
+        -DBUILD_CAFFE2_OPS=ON \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_SHARED_LINKER_FLAGS="-fopenmp" \
+        -DCMAKE_EXE_LINKER_FLAGS="-fopenmp" \
+        ..
+
+RUN cd /opt/build/pytorch/build && \
+        ninja && \
+        ninja install && \
+        cd /opt/build/pytorch && \
+        CC=verificarlo-c \
+        CXX=verificarlo-c++ \
+        LDSHARED=verificarlo-c \
+        CFLAGS="-L/usr/local/lib/python3.12/dist-packages/torch/lib -fopenmp ${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        LDFLAGS="-L/usr/local/lib/python3.12/dist-packages/torch/lib -shared -fopenmp ${PRISM_FLAGS} --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        python3 setup.py install
+
+RUN cd /tmp/ && python3 test_fuzzy_pytorch.py
+
+ENV PYTHONPATH=/usr/local/lib/python3.12/dist-packages
+
+# Build torchaudio
+RUN cd /opt/build/ && \
+        git clone --depth=1 -b v2.2.1 https://github.com/pytorch/audio.git && \
+        cd audio && \
+        python3 -m pip install ffmpeg sentencepiece deep-phonemizer soundfile sox && \
+        CC=verificarlo-c CXX=verificarlo-c++ \
+        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -Wno-missing-template-arg-list-after-template-kw --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -Wno-missing-template-arg-list-after-template-kw --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -Wno-missing-template-arg-list-after-template-kw -shared -fopenmp --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        LDSHARED=verificarlo-c \
+        python3 -m pip install --no-build-isolation . -r requirements.txt
+
+
+# Build torchvision
+RUN pip install "setuptools==69.5.1" && \
+        cd /opt/build/ && \
+        git clone --depth=1 -b v0.17.2 https://github.com/pytorch/vision.git && \
+        cd vision && \
+        echo '#include <string>' >> torchvision/csrc/vision.cpp && \
+        echo 'extern "C" const char* c10_error_what_impl(const void* self) {' >> torchvision/csrc/vision.cpp && \
+        echo '  return ((const std::string*)((const char*)self + 96))->c_str();' >> torchvision/csrc/vision.cpp && \
+        echo '}' >> torchvision/csrc/vision.cpp && \
+        echo 'asm(".global _ZNK3c105Error4whatEv");' >> torchvision/csrc/vision.cpp && \
+        echo 'asm(".type _ZNK3c105Error4whatEv, @function");' >> torchvision/csrc/vision.cpp && \
+        echo 'asm("_ZNK3c105Error4whatEv:");' >> torchvision/csrc/vision.cpp && \
+        echo 'asm("jmp c10_error_what_impl");' >> torchvision/csrc/vision.cpp && \
+        CC=verificarlo-c CXX=verificarlo-c++ \
+        CFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        CXXFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        LDFLAGS="--prism-backend=sr --prism-backend-dispatch=static --inst-fma -shared --exclude-file=/tmp/pytorch-vfc-exclude.txt" \
+        LDSHARED=verificarlo-c \
+        python3 -m pip install --no-build-isolation --break-system-packages --no-deps .
+
+# Pre-install transformers
+RUN pip install --break-system-packages 'transformers==4.40.0'
+
+# Runtime stage
+FROM ${ORG}/verificarlo:${VERIFICARLO_VERSION}
+ARG MARCH=native
+ARG ISA=native
+LABEL org.verificarlo.fuzzy.isa=${ISA} org.verificarlo.fuzzy.march=${MARCH} org.verificarlo.version=v2.6.0 org.pytorch.version=2.2.1
+
+# Copy only necessary files from builder
+COPY --from=builder /usr/local/lib/ /usr/local/lib/
+COPY --from=builder /usr/local/include/ /usr/local/include/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=builder /usr/local/lib/python3.12/dist-packages/ /usr/local/lib/python3.12/dist-packages/
+COPY --from=builder /opt/build/pytorch/build/.ninja_log /tmp/pytorch_build.log
+
+# Set environment variables
+ENV VFC_BACKENDS="libinterflop_ieee.so"
+ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib/python3.12/dist-packages/torch/lib:${LD_LIBRARY_PATH}"
+ENV PYTHONPATH="/usr/local/lib/python3.12/dist-packages:${PYTHONPATH}"
+RUN echo "/usr/local/lib/liblapack.so" > /etc/ld.so.preload && \
+    echo "/usr/local/lib/libcblas.so" >> /etc/ld.so.preload && \
+    echo "/usr/local/lib/libblas.so" >> /etc/ld.so.preload && \
+    echo "/usr/local/lib/libhwy.so" >> /etc/ld.so.preload && \
+    ldconfig
+CMD ["/bin/bash"]
