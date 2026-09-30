@@ -70,7 +70,7 @@ that's no problem, just convert the container using the appropriate method for
 your system ([e.g.](https://docs.computecanada.ca/wiki/Singularity#Creating_images)).
 
 If you would like to build the environment locally on your system, look at the
-Dockerfiles in `docker/base/` to see how installation was performed. At the end of the
+Dockerfiles in `docker/python/` to see how installation was performed. At the end of the
 build chain, you'll find instrumented versions of `libmath`, `lapack`, `python3`,
 `numpy`, and several other recompiled libraries.
 
@@ -156,7 +156,7 @@ Fuzzy libmath version to use:
 
 
 > [!TIP] 
-> The script [build_fuzzy_libmath_dockerfile.sh](docker/resources/build_fuzzy_libmath_dockerfile.sh) helps you turn your Docker image into a fuzzy-libmath one.
+> The script [build_fuzzy_libmath_dockerfile.sh](scripts/build_fuzzy_libmath_dockerfile.sh) helps you turn your Docker image into a fuzzy-libmath one.
 
 ```bash
 usage: ./build_fuzzy_libmath_dockerfile.sh <DOCKER_IMAGE> <TAG> [FUZZY_IMAGE]
