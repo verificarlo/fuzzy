@@ -235,6 +235,14 @@ study: variants with and without hardware FMA can differ in the last digits.
 See [docker/pytorch/README.md](docker/pytorch/README.md) for the variants and
 how to build them.
 
+The recipe comes from
+[big-data-lab-team/fuzzy-pytorch](https://github.com/big-data-lab-team/fuzzy-pytorch),
+the code and artifacts of the paper *Fuzzy PyTorch: Rapid Numerical
+Variability Evaluation for Deep Learning Models*, and
+[big-data-lab-team/fuzzy-llm](https://github.com/big-data-lab-team/fuzzy-llm),
+which uses these images to study stochastic rounding in low-precision
+transformer inference.
+
 #### Running Fuzzy workflows
 In the context of *Fuzzy* experiments, it is important to remember that by default
 each execution will be evaluated with a unique random state, meaning that when you
