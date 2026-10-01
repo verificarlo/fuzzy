@@ -1,3 +1,43 @@
+# [v2.6.0] 2026/09/30
+
+## Added
+    * Fuzzy PyTorch images per x86-64 instruction set: verificarlo/fuzzy:v2.6.0-pytorch2.2.1-{sse2,sse4,avx2,avx512} (docker/pytorch/)
+    * PyTorch build fails if PRISM's static kernels do not target the variant's -march
+
+## Changed
+    * Change verificarlo version [v2.5.1 -> v2.6.0]
+    * Reorganize docker/ into python/ (lapack -> sklearn stack) and pytorch/
+    * CI derives every tag from a single VERIFICARLO_VERSION
+    * examples submodule uses HTTPS
+
+## Removed
+    * Ubuntu 18.04 and 20.04 recipes, *-only variants, docker/apps/Dockerfile.pytorch
+    * Unused build/ scripts, test/, and unreferenced resources
+
+# [v2.5.1] 2026/06/26
+
+## Changed
+    * Change verificarlo version [v2.1.0 -> v2.5.1]
+    * Move to Ubuntu 24.04
+    * Update lapack version to 3.12.1
+    * Update python version to 3.12.13
+    * Update numpy version to 2.4.6
+    * Update scipy version to 1.18.0
+    * Update sklearn version to 1.9.0
+
+# [v2.1.0] 2025/06/12
+
+## Added
+    * Fuzzy PyTorch docker image
+    * BLAS sanity check
+
+## Changed
+    * Change verificarlo version [v2.0.0 -> v2.1.0]
+    * Update python version to 3.8.20
+    * Update numpy version to 1.24.4
+    * Update scipy version to 1.10.1
+    * Update sklearn version to 1.2.2
+
 # [v2.0.0] 2024/05/21
 
 ## Changed

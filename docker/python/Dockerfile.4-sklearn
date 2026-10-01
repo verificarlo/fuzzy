@@ -1,28 +1,26 @@
 ARG ORG=verificarlo
-ARG VERIFICARLO_VERSION=v2.1.0
-FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.8.20-numpy-scipy
+ARG VERIFICARLO_VERSION=v2.6.0
+FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.12.13-numpy-scipy
 
-ARG SKLEARN_VERSION=1.2.2
+ARG SKLEARN_VERSION=1.9.0
 
 COPY docker/resources/sklearn-sanity-check.py /tmp/
 
 # Load backend IEEE
-RUN pip install cython>=3.0.0 -U && \
+RUN \
   echo "libinterflop_ieee.so" > $VFC_BACKENDS_FROM_FILE  && \
   cd /opt/build && \
   wget https://github.com/scikit-learn/scikit-learn/archive/refs/tags/${SKLEARN_VERSION}.tar.gz &&\
-  tar xvf ${SKLEARN_VERSION}.tar.gz &&\
+  tar xf ${SKLEARN_VERSION}.tar.gz &&\
   cd scikit-learn-${SKLEARN_VERSION} &&\
-  CC="verificarlo-c" FC="verificarlo-f" CXX="verificarlo-c++" \
+  CC="meson-verificarlo-c" FC="meson-verificarlo-f" CXX="meson-verificarlo-c++" \
   CFLAGS="--inst-fma" \
   CXXFLAGS="--inst-fma" \
-  FCFLAGS="--inst-fma" \
-  LDFLAGS="--inst-fma -shared" \
-  LDSHARED="verificarlo-c" \
-  python3 -m pip install --verbose  . && \
+  FFLAGS="--inst-fma" \
+  python3 -m pip install --verbose . -Cbuild-dir=/tmp/sklearn-meson-build && \
   # Remove temporary files
   echo "libinterflop_mca.so -m rr" > $VFC_BACKENDS_FROM_FILE && \
-  cd && python3 /tmp/sklearn-sanity-check.py && \
+  cd && pytest /tmp/sklearn-sanity-check.py && \
   rm -rf /opt/build/*
 
-ENTRYPOINT [ "/bin/bash"]
+ENTRYPOINT [ "/bin/bash" ]

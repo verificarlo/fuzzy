@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DOCKERFILE=Dockerfile.mcalibmath
-FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v2.1.0-lapack
+FUZZY_IMAGE_DEFAULT=verificarlo/fuzzy:v2.6.0-lapack
 
 generate_docker() {
 

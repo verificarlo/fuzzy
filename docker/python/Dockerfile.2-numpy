@@ -1,5 +1,5 @@
 ARG ORG=verificarlo
-ARG VERIFICARLO_VERSION=v2.5.1
+ARG VERIFICARLO_VERSION=v2.6.0
 FROM ${ORG}/fuzzy:${VERIFICARLO_VERSION}-lapack-python3.12.13
 
 ARG NUMPY_VERSION=2.4.6
@@ -93,7 +93,7 @@ RUN cd /opt/build/numpy-${NUMPY_VERSION} && \
     -Csetup-args=-Dcpu-dispatch=none
 
 RUN \
-    pip install pygments pyyaml && \
+    pip install pygments pyyaml pytest && \
     python3 -c "import numpy as np; np.show_config(); print('NumPy version:', np.__version__)" && \
     # Smoked test for vectorization.
     # We should run the full numpy test suit in next versions    
