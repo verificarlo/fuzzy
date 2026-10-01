@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check for file changes
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@v46
         id: changes
 
       - name: Print list of changed files
@@ -123,7 +123,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check for file changes
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@v46
         id: changes
 
       - name: Print list of changed files
