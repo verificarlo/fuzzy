@@ -1,0 +1,234 @@
+#!/bin/bash
+# fuzzy: choose, per package, which build of the Fuzzy image to use: `prism`
+# (compiled with Verificarlo's PRISM backend) or `ieee` (not instrumented).
+#
+# Packages are described by $FUZZY_ROOT/registry/<name>.env, written by the
+# recipes in docker/fuzzy/recipes. There are three kinds:
+#   native       shared libraries, same sonames in both builds (lapack);
+#                selected through symlinks in $FUZZY_ROOT/active/lib, which
+#                is on LD_LIBRARY_PATH
+#   interpreter  CPython: libpython in active/lib and the extension modules
+#                in active/dynload
+#   python       wheels <dist>==<version>+<build> in $FUZZY_ROOT/wheels,
+#                installed into a Python environment with uv
+# The current selection is read back from those symlinks and from the
+# installed wheels; there is no other state.
+set -euo pipefail
+
+ROOT=${FUZZY_ROOT:-/opt/fuzzy}
+REG=$ROOT/registry
+ACTIVE=$ROOT/active
+
+usage() {
+    cat <<EOF
+usage: fuzzy list [--python ENV]
+       fuzzy use [--python ENV] PKG=BUILD...
+       fuzzy run PKG=BUILD... -- COMMAND [ARG...]
+       fuzzy env PKG=BUILD...
+
+  list  show the packages, their builds and the current selection
+  use   switch packages persistently; Python packages are reinstalled into
+        ENV (default: \$VIRTUAL_ENV, else $ROOT/venv)
+  run   run one command with other builds of native packages and of the
+        interpreter, without changing anything (works on read-only images)
+  env   print the exports that \`run\` would set, for eval "\$(fuzzy env ...)"
+
+BUILD is prism or ieee. Example: fuzzy use lapack=ieee numpy=prism
+EOF
+}
+
+die() {
+    echo "fuzzy: $*" >&2
+    exit 1
+}
+
+load() {
+    local file=$REG/$1.env
+    [ -f "$file" ] || die "unknown package '$1' (see fuzzy list)"
+    KIND='' VERSION='' DIR='' DIST='' BUILDS=''
+    # shellcheck disable=SC1090
+    . "$file"
+}
+
+check_build() {
+    case " $BUILDS " in
+    *" $2 "*) ;;
+    *) die "$1 has no build '$2' (builds: $BUILDS)" ;;
+    esac
+}
+
+target_python() {
+    local env=${opt_python:-${VIRTUAL_ENV:-$ROOT/venv}}
+    if [ -x "$env/bin/python" ]; then
+        echo "$env/bin/python"
+    elif [ -f "$env" ] && [ -x "$env" ]; then
+        echo "$env"
+    else
+        return 1
+    fi
+}
+
+packages() {
+    local file
+    for file in "$REG"/*.env; do
+        [ -e "$file" ] || die "no packages registered in $REG"
+        basename "$file" .env
+    done
+}
+
+# Build currently selected for a loaded package, or "-".
+current() {
+    local name=$1 target lib py version
+    case $KIND in
+    native | interpreter)
+        for lib in "$ROOT/$DIR"/*/lib/*.so*; do
+            target=$(readlink "$ACTIVE/lib/$(basename "$lib")" 2>/dev/null) || continue
+            target=${target#"$ROOT/$DIR/"}
+            echo "${target%%/*}"
+            return
+        done
+        echo -
+        ;;
+    python)
+        py=$(target_python) || { echo -; return; }
+        version=$("$py" -c "import importlib.metadata as m; print(m.version('$DIST'))" 2>/dev/null) || { echo -; return; }
+        case $version in
+        *+*) echo "${version#*+}" ;;
+        *) echo "other ($version)" ;;
+        esac
+        ;;
+    esac
+}
+
+list() {
+    local name
+    printf '%-10s %-10s %-12s %-12s %s\n' PACKAGE VERSION KIND BUILDS CURRENT
+    for name in $(packages); do
+        load "$name"
+        printf '%-10s %-10s %-12s %-12s %s\n' "$name" "$VERSION" "$KIND" "${BUILDS// /,}" "$(current "$name")"
+    done
+    if py=$(target_python); then
+        echo "Python packages: $(dirname "$(dirname "$py")")"
+    fi
+}
+
+# Point $ACTIVE at one build of a loaded native package or interpreter.
+link() {
+    local build=$1 link lib
+    [ -w "$ACTIVE" ] || die "$ACTIVE is read-only: use fuzzy run or fuzzy env instead"
+    mkdir -p "$ACTIVE/lib"
+    for link in "$ACTIVE"/lib/*; do
+        if [ -L "$link" ] && [[ $(readlink "$link") == "$ROOT/$DIR/"* ]]; then
+            rm "$link"
+        fi
+    done
+    for lib in "$ROOT/$DIR/$build"/lib/*.so*; do
+        ln -s "$lib" "$ACTIVE/lib/$(basename "$lib")"
+    done
+    if [ "$KIND" = interpreter ]; then
+        ln -sfn "$ROOT/$DIR/$build/lib-dynload" "$ACTIVE/dynload"
+    fi
+}
+
+install_wheel() {
+    local name=$1 build=$2 py
+    py=$(target_python) || die "no Python environment at ${opt_python:-${VIRTUAL_ENV:-$ROOT/venv}} (create one with: uv venv --python $ROOT/python/3.12/bin/python3 DIR)"
+    uv pip install --python "$py" --reinstall-package "$DIST" \
+        --find-links "$ROOT/wheels/ieee" --find-links "$ROOT/wheels/prism" \
+        "$DIST==$VERSION+$build"
+}
+
+# Parse PKG=BUILD arguments into the arrays names and builds.
+parse() {
+    names=() builds=()
+    local arg
+    for arg in "$@"; do
+        [[ $arg == ?*=?* ]] || die "expected PKG=BUILD, got '$arg'"
+        load "${arg%%=*}"
+        check_build "${arg%%=*}" "${arg#*=}"
+        names+=("${arg%%=*}")
+        builds+=("${arg#*=}")
+    done
+    [ ${#names[@]} -gt 0 ] || die "no PKG=BUILD given"
+}
+
+use() {
+    parse "$@"
+    local i
+    for i in "${!names[@]}"; do
+        load "${names[$i]}"
+        case $KIND in
+        native | interpreter) link "${builds[$i]}" ;;
+        python) install_wheel "${names[$i]}" "${builds[$i]}" ;;
+        esac
+        echo "${names[$i]}: ${builds[$i]}"
+    done
+}
+
+# Set ld_path and py_path for the selections in names/builds.
+paths() {
+    local i
+    ld_path='' py_path=''
+    for i in "${!names[@]}"; do
+        load "${names[$i]}"
+        case $KIND in
+        native) ld_path+="$ROOT/$DIR/${builds[$i]}/lib:" ;;
+        interpreter)
+            ld_path+="$ROOT/$DIR/${builds[$i]}/lib:"
+            py_path+="$ROOT/$DIR/${builds[$i]}/lib-dynload:"
+            ;;
+        python) die "${names[$i]} is a Python package: switch it with fuzzy use [--python ENV] ${names[$i]}=${builds[$i]}" ;;
+        esac
+    done
+}
+
+# prepend PREFIX VALUE: PREFIX (ending with ':') followed by VALUE, without an
+# empty entry when VALUE is empty.
+prepend() {
+    local value="$1${2:-}"
+    echo "${value%:}"
+}
+
+env_cmd() {
+    parse "$@"
+    paths
+    [ -z "$ld_path" ] || printf 'export LD_LIBRARY_PATH=%q\n' "$(prepend "$ld_path" "${LD_LIBRARY_PATH:-}")"
+    [ -z "$py_path" ] || printf 'export PYTHONPATH=%q\n' "$(prepend "$py_path" "${PYTHONPATH:-}")"
+}
+
+run() {
+    local selections=()
+    while [ $# -gt 0 ] && [ "$1" != -- ]; do
+        selections+=("$1")
+        shift
+    done
+    [ $# -gt 1 ] || die "usage: fuzzy run PKG=BUILD... -- COMMAND [ARG...]"
+    shift
+    parse "${selections[@]}"
+    paths
+    [ -z "$ld_path" ] || export LD_LIBRARY_PATH="$(prepend "$ld_path" "${LD_LIBRARY_PATH:-}")"
+    [ -z "$py_path" ] || export PYTHONPATH="$(prepend "$py_path" "${PYTHONPATH:-}")"
+    exec "$@"
+}
+
+opt_python=''
+[ $# -gt 0 ] || { usage >&2; exit 2; }
+command=$1
+shift
+if [ "$command" = list ] || [ "$command" = use ]; then
+    if [ "${1:-}" = --python ]; then
+        opt_python=${2:?--python needs an environment}
+        shift 2
+    fi
+fi
+case $command in
+list) list ;;
+use) use "$@" ;;
+run) run "$@" ;;
+env) env_cmd "$@" ;;
+-h | --help | help) usage ;;
+*)
+    usage >&2
+    exit 2
+    ;;
+esac
