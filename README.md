@@ -243,6 +243,14 @@ Variability Evaluation for Deep Learning Models*, and
 which uses these images to study stochastic rounding in low-precision
 transformer inference.
 
+#### Instrumented and plain builds side by side (prototype)
+
+[docker/fuzzy/](docker/fuzzy/README.md) builds one image per x86-64 level. It
+contains every package twice, built with PRISM and built without
+instrumentation, and lets you choose per package at run time
+(`fuzzy use lapack=ieee numpy=prism`). It covers LAPACK, CPython and NumPy
+for x86-64-v3 so far; see [#53](https://github.com/verificarlo/fuzzy/issues/53).
+
 #### Running Fuzzy workflows
 In the context of *Fuzzy* experiments, it is important to remember that by default
 each execution will be evaluated with a unique random state, meaning that when you
