@@ -1,0 +1,16 @@
+#!/bin/bash
+# verificarlo-f for meson: answers the compiler probes with flang directly,
+# and drops options flang rejects.
+for arg in "$@"; do
+  case "$arg" in
+    --version|-V|-v|-dumpversion|-dumpmachine|-E) exec flang "$@" ;;
+  esac
+done
+args=()
+for arg in "$@"; do
+  case "$arg" in
+    -fvisibility=*|-std=legacy) ;;
+    *) args+=("$arg") ;;
+  esac
+done
+exec verificarlo-f "${args[@]}"

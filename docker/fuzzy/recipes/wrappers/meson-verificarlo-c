@@ -1,0 +1,19 @@
+#!/bin/bash
+# verificarlo-c for meson: answers --version like clang, and drops the
+# Verificarlo-only options --inst-fma and --exclude-file from link commands,
+# including those in response files.
+if [ "$1" = "--version" ]; then exec clang --version; fi
+compile=false
+for arg in "$@"; do [ "$arg" = "-c" ] && compile=true; done
+if ! $compile; then
+  args=()
+  for arg in "$@"; do
+    case "$arg" in
+      --inst-fma|--exclude-file=*) ;;
+      @*) rsp="${arg#@}"; clean="$(mktemp)"; sed -e "s/--inst-fma//g" -e "s/--exclude-file=[^[:space:]]*//g" "$rsp" > "$clean"; args+=("@$clean") ;;
+      *) args+=("$arg") ;;
+    esac
+  done
+  exec verificarlo-c "${args[@]}"
+fi
+exec verificarlo-c "$@"
