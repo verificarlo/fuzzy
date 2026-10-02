@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Wheel helpers for the Fuzzy image, standard library only.
 
-  wheeltool.py retag WHEEL LABEL OUTDIR [--requires REQ ...]
+  wheeltool.py retag WHEEL LABEL OUTDIR [--requires REQ ...] [--drop-rpath DIR ...]
       Copy WHEEL to OUTDIR with the local version label LABEL
       (numpy-2.4.6 -> numpy-2.4.6+prism) and extra Requires-Dist lines.
+      --drop-rpath removes the RUNPATH entries under DIR from the shared
+      objects (with patchelf): a wheel must find its libraries through the
+      selected build, not through the build it was linked against.
 
   wheeltool.py marker NAME VERSION OUTDIR
       Write an empty pure-Python wheel NAME==VERSION to OUTDIR. The image uses
@@ -17,6 +20,8 @@ import base64
 import hashlib
 import os
 import re
+import subprocess
+import tempfile
 import zipfile
 
 
@@ -48,7 +53,26 @@ def write_wheel(outdir, name, version, tag, files):
     print(path)
 
 
-def retag(wheel, label, outdir, requires):
+def drop_rpath(data, dirs):
+    """Shared object data without the RUNPATH entries under dirs."""
+    with tempfile.NamedTemporaryFile(suffix=".so") as so:
+        so.write(data)
+        so.flush()
+        rpath = subprocess.run(
+            ["patchelf", "--print-rpath", so.name], check=True, capture_output=True, text=True
+        ).stdout.strip()
+        kept = [e for e in rpath.split(":") if e and not any(e.startswith(d) for d in dirs)]
+        if kept == [e for e in rpath.split(":") if e]:
+            return data
+        if kept:
+            subprocess.run(["patchelf", "--set-rpath", ":".join(kept), so.name], check=True)
+        else:
+            subprocess.run(["patchelf", "--remove-rpath", so.name], check=True)
+        with open(so.name, "rb") as patched:
+            return patched.read()
+
+
+def retag(wheel, label, outdir, requires, rpath_dirs):
     filename = os.path.basename(wheel)
     name, version, tag = re.match(r"([^-]+)-([^-]+)-(.+)\.whl$", filename).groups()
     if "+" in version:
@@ -68,6 +92,8 @@ def retag(wheel, label, outdir, requires):
                 arcname = new_distinfo + arcname[len(old_distinfo):]
                 if arcname == new_distinfo + "METADATA":
                     data = edit_metadata(data, new_version, requires)
+            elif rpath_dirs and re.search(r"\.so(\.|$)", arcname):
+                data = drop_rpath(data, rpath_dirs)
             files[arcname] = (data, info.external_attr >> 16)
     write_wheel(outdir, name, new_version, tag, files)
 
@@ -102,13 +128,14 @@ def main():
     p.add_argument("label")
     p.add_argument("outdir")
     p.add_argument("--requires", action="append", default=[])
+    p.add_argument("--drop-rpath", action="append", default=[])
     p = sub.add_parser("marker")
     p.add_argument("name")
     p.add_argument("version")
     p.add_argument("outdir")
     args = parser.parse_args()
     if args.command == "retag":
-        retag(args.wheel, args.label, args.outdir, args.requires)
+        retag(args.wheel, args.label, args.outdir, args.requires, args.drop_rpath)
     else:
         marker(args.name, args.version, args.outdir)
 
