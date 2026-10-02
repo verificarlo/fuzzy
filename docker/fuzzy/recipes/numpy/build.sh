@@ -45,7 +45,10 @@ CFLAGS="$cflags" CXXFLAGS="$cflags" FFLAGS="$cflags" LDFLAGS="$cflags" \
     -Csetup-args=-Dcpu-baseline=none \
     -Csetup-args=-Dcpu-dispatch=none
 
-python3 "$RECIPES/wheeltool.py" retag "$src"/dist/numpy-*.whl "$build" "$FUZZY_ROOT/wheels/$build" "${requires[@]}"
+# meson-python >= 0.22.1 keeps the RUNPATH to the LAPACK the wheel was linked
+# against (the ieee one): drop it, so that `fuzzy use lapack=...` decides.
+python3 "$RECIPES/wheeltool.py" retag "$src"/dist/numpy-*.whl "$build" "$FUZZY_ROOT/wheels/$build" \
+    --drop-rpath "$FUZZY_ROOT/" "${requires[@]}"
 cd /
 rm -rf "$src"
 
