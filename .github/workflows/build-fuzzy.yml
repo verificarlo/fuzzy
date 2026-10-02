@@ -110,6 +110,32 @@ jobs:
           name: fuzzy_${{ env.VERIFICARLO_VERSION }}-${{ matrix.TO }}
           path: /tmp/fuzzy_${{ env.VERIFICARLO_VERSION }}-${{ matrix.TO }}.tar
 
+  # Prototype of one image per x86-64 level (#53): build and test the
+  # x86-64-v3 image. Nothing is pushed yet.
+  fuzzy-level:
+    name: Level image x86-64-v3 (build and test)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for file changes
+        uses: tj-actions/changed-files@v46
+        id: changes
+        with:
+          files: |
+            docker/fuzzy/**
+            docker/pytorch/Dockerfile.verificarlo
+            docker/resources/**
+
+      - name: Free disk space
+        if: steps.changes.outputs.any_changed == 'true'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Build and test
+        if: steps.changes.outputs.any_changed == 'true'
+        run: docker/fuzzy/build.sh v3 docker
+
   rename-publish:
     needs: fuzzy
     runs-on: ubuntu-24.04
