@@ -37,6 +37,12 @@ RUN apt-get update -qq && \
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY docker/fuzzy/recipes/common.sh /opt/fuzzy-src/recipes/
 COPY docker/fuzzy/recipes/wrappers/ /opt/fuzzy-src/recipes/wrappers/
+RUN case "$MARCH" in x86-64|x86-64-v2) bits=128;; x86-64-v3) bits=256;; x86-64-v4) bits=512;; esac && \
+    clang++ -shared -fPIC -O2 -DFUZZY_VECTOR_BITS=$bits \
+    $(llvm-config-20 --cxxflags) /opt/fuzzy-src/recipes/wrappers/legalize-prism.cpp \
+    -o /opt/fuzzy-src/recipes/wrappers/legalize-prism.so \
+    $(llvm-config-20 --ldflags --libs core passes) && \
+    python3 /opt/fuzzy-src/recipes/wrappers/install-legalizer.py /usr/local/bin/verificarlo
 
 # Each stage copies only its own recipe, so that editing one recipe rebuilds
 # only that package.

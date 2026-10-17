@@ -14,18 +14,6 @@ if source.count(needle) != 1:
 source = source.replace(needle, needle + f"\n  return CPUCapability::{capability}; // Fuzzy: image ISA, never host CPUID")
 path.write_text(source)
 
-# DEFAULT uses portable vector helpers. LLVM can re-vectorize their loops
-# into 64-lane operations that PRISM does not export. Limit that extra
-# vectorization in both flavors; retain normal optimization for all other
-# sources and the explicit AVX2/AVX-512 kernels.
-path = Path(root) / "cmake/Codegen.cmake"
-source = path.read_text()
-needle = 'list(APPEND CPU_CAPABILITY_FLAGS "${OPT_FLAG}")'
-if source.count(needle) != 1:
-    raise SystemExit("ATen DEFAULT compiler flags changed: review the PRISM vector cap")
-path.write_text(source.replace(
-    needle, 'list(APPEND CPU_CAPABILITY_FLAGS "${OPT_FLAG} -mllvm -force-vector-width=4")'))
-
 # SLEEF enables its scalar FMA implementation unconditionally and gives it
 # AVX2 compiler flags. The SIMD DISABLE switches do not cover this target.
 if march in ("x86-64", "x86-64-v2"):

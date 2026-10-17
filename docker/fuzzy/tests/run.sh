@@ -130,6 +130,10 @@ varies lapack-prism blas prism
 constant lapack-ieee blas ieee
 close lapack blas ieee -- blas prism
 precision lapack blas prism
+for build in ieee prism; do
+    VFC_BACKENDS=$RN fuzzy run python=ieee libm=ieee "lapack=$build" -- \
+        python3 "$here/check-scal.py"
+done
 
 echo "== CPython"
 python_probe='
