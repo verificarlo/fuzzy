@@ -28,16 +28,23 @@ the required local distribution mechanism.
 - C and C++ response-file regression checks pass, including actual PRISM
   linkage, deterministic RN and stochastic SR. The full image rerun is pending.
 - The v1 SDE CPUID profile accepts a baseline executable and rejects SSE3.
+- SDE 9.58 follows Python subprocesses on the workstation and Rorqual;
+  the v1 profile rejects SSE3 in a followed child. C and C++ response-file
+  checks pass under v1 and v2 emulation. SDE 10.13.1 fails the Python
+  `close_fds=True` process-launch probe, so compatibility checks pin 9.58.
 - Workflow validation with actionlint and shell/Python syntax checks pass.
 - The offline adapters pass a local test with networking disabled: Python
   environment seeding, local wheel installation, source archive retrieval,
   git checkout recovery and apt dependency verification.
-- The v4 Verificarlo base is built; its static PRISM library contains ZMM
-  instructions. The prepared apt/uv base is ready for the Rorqual build.
+- All four Verificarlo bases and their prepared apt/uv OCI archives are
+  built and staged. The v4 static PRISM library contains ZMM instructions.
 - Rorqual has the required AVX-512 CPU features. A Slurm preflight can run
   a staged Ubuntu OCI image with rootless Podman using
   `overlay.ignore_chown_errors=true`. Compute nodes cannot fetch GitHub;
-  build inputs are being staged for an offline build.
+  the hashed sources and wheel dependencies are staged for offline builds.
+- All four offline Slurm builds are submitted. The controller has exercised
+  clean-revision staging, submission and tracking; completion, archive
+  verification and import remain to be checked.
 
 ## Current build configuration
 

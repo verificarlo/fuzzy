@@ -1,12 +1,12 @@
 #!/bin/bash
-# Pinned Intel SDE archive for the image compatibility checks.
+# Pin 3-based SDE: 10.13.1 fails to follow Python's close_fds subprocesses.
 set -euo pipefail
 dest=${1:?usage: install-sde.sh DESTINATION}
 archive=$(mktemp)
 trap 'rm -f "$archive"' EXIT
 curl --fail --location --retry 3 \
-    https://downloadmirror.intel.com/924984/sde-external-10.13.1-2026-07-28-lin.tar.xz \
+    https://downloadmirror.intel.com/859732/sde-external-9.58.0-2025-06-16-lin.tar.xz \
     -o "$archive"
-printf '%s  %s\n' 94e97d623fec54385686e1e7ba65ebc9941748c05ee451423948334892bf2b50 "$archive" | sha256sum -c -
+printf '%s  %s\n' f849acecad4c9b108259c643b2688fd65c35723cd23368abe5dd64b917cc18c0 "$archive" | sha256sum -c -
 mkdir -p "$dest"
 tar xJf "$archive" --strip-components=1 -C "$dest"

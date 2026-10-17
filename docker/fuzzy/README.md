@@ -31,7 +31,7 @@ By default every package uses its `prism` build and
 `pow`, `atan2`, `tanh`, `erf`, `lgamma`... (in `float` and `double`; the list is in
 `recipes/libm/fuzzy-libm.c`) for every program in the image, instrumented or
 not. Each result is computed in binary128 with libquadmath, then rounded by
-PRISM with its current mode and precision: correctly rounded under
+PRISM with its current mode and precision: rounded to nearest under
 `--mode=rn`, stochastically rounded under `--mode=sr`. The image preloads
 `libfuzzy-libm.so` (`LD_PRELOAD`), which the loader finds through
 `LD_LIBRARY_PATH`; `libm=ieee` selects an empty one, and the functions come
@@ -147,8 +147,9 @@ recipe, `recipes/<pkg>/build.sh <ieee|prism>`; `recipes/common.sh` holds the
 flags of the two builds. The `test` stage runs `tests/run.sh`, which checks
 that each `prism` build varies under `--mode=sr` and that each `ieee` build
 does not, and that the PRISM libraries load on their own (they need `libhwy`
-and the shared `libprism-config`). It also checks that `prism --mode=rn` stays within a few ULPs of
-`ieee` and that mixed selections perturb only what they should. Finally, it
+and the shared `libprism-config`). It also checks that `prism --mode=rn` stays
+within 16 ULPs of `ieee` for the numerical probes and that mixed selections
+perturb only what they should. Finally, it
 checks that no binary uses vector registers wider than the level, that no
 RUNPATH points into a build directory, and that the `fuzzy` tool works.
 

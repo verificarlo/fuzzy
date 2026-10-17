@@ -194,7 +194,7 @@ varies libm-prism:binary64 libm prism 64
 varies libm-prism:binary32 libm prism 32
 constant libm-ieee:binary64 libm ieee 64
 constant libm-ieee:binary32 libm ieee 32
-# glibc's double functions are within 1 ULP; prism rn is correctly rounded.
+# Compare glibc's double functions with the rounded binary128 reference.
 close libm libm ieee 64 -- libm prism 64
 rn_libm() { VFC_BACKENDS=$RN libm "$@"; }
 constant libm-prism:rn rn_libm prism 64

@@ -13,6 +13,7 @@ case $level in
     *) echo 'SDE checks apply to v1, v2 and v3' >&2; exit 2 ;;
 esac
 [ -x "$sde/sde64" ] || { echo "no sde64 in $sde" >&2; exit 2; }
+"$sde/sde64" -version
 root=$(cd "$(dirname "$0")/../../.." && pwd)
 args=(--rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
     -v "$sde:/opt/intel-sde:ro" -v "$root:/opt/fuzzy-checks:ro")
@@ -34,6 +35,8 @@ fi
     # runtime. env restores the preload only inside the emulated application.
     preload=$LD_PRELOAD
     unset LD_PRELOAD
-    exec /opt/intel-sde/sde64 "${@:2}" -chip_check_die -follow_subprocess -- \
+    # Keep the shell as PID 1: Pin 3 asserts when launched as container PID 1.
+    /opt/intel-sde/sde64 "${@:2}" -chip_check_die -follow_subprocess -- \
         /usr/bin/env LD_PRELOAD="$preload" /bin/bash /tmp/fuzzy-tests/run.sh "x86-64-$1"
+    exit 0
 ' bash "$level" "${chip[@]}"
