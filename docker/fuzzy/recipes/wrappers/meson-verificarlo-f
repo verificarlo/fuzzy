@@ -3,7 +3,7 @@
 # and drops options flang rejects.
 for arg in "$@"; do
   case "$arg" in
-    --version|-V|-v|-dumpversion|-dumpmachine|-E) exec flang "$@" ;;
+    --help|--version|-V|-v|-dumpversion|-dumpmachine|-E) exec flang "$@" ;;
   esac
 done
 args=()

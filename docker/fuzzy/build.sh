@@ -4,7 +4,7 @@
 #   docker/fuzzy/build.sh <v1|v2|v3|v4> [podman|docker]
 #
 # 1. The level's Verificarlo image, with PRISM's static kernels compiled for
-#    its -march (docker/pytorch/Dockerfile.verificarlo). Skipped when
+#    its -march (the release's own Dockerfile). Skipped when
 #    localhost/verificarlo/verificarlo:<verificarlo>-<isa> exists already,
 #    e.g. from docker/pytorch/build.sh; set REBUILD_BASE=1 to rebuild it.
 # 2. docker/fuzzy/Dockerfile up to its `test` stage, which runs
@@ -23,10 +23,10 @@ here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 n=${1:?usage: build.sh <v1|v2|v3|v4> [podman|docker]}
 engine=${2:-podman}
-# The first releases with PRISM's libprism-config and libhwy dependency
-# (verificarlo/prism#23, #24) and INTERFLOP_ROUND_DW_ID (libm=prism).
-verificarlo_version=${FUZZY_VERIFICARLO_VERSION:-v2.6.1}
-prism_version=${FUZZY_PRISM_VERSION:-0.0.11}
+# v2.7.0 includes libprism-config, the libhwy dependency, ROUND_DW and the
+# per-ISA build support. Its PRISM submodule is v0.0.12.
+verificarlo_version=${FUZZY_VERIFICARLO_VERSION:-v2.7.0}
+prism_version=${FUZZY_PRISM_VERSION:-0.0.12}
 case $n in
 v1) march=x86-64 isa=sse2 ;;
 v2) march=x86-64-v2 isa=sse4 ;;
@@ -59,7 +59,7 @@ if [ -n "${REBUILD_BASE:-}" ] || ! "$engine" image inspect "$base" >/dev/null 2>
         fi
     fi
     "$engine" build "${extra[@]}" --build-arg PRISM_ARCH="$march" \
-        -t "$base" -f "$root/docker/pytorch/Dockerfile.verificarlo" "$src"
+        -t "$base" -f "$src/Dockerfile" "$src"
 fi
 
 image=verificarlo/fuzzy:$verificarlo_version-$level
@@ -69,6 +69,7 @@ args=(
     --build-arg LEVEL="$level"
     --build-arg VERIFICARLO_VERSION="$verificarlo_version"
     --build-arg PRISM_RUNTIME_VERSION="$prism_version+${level//-/.}"
+    --build-arg TORCH_BUILD_JOBS="${TORCH_BUILD_JOBS:-2}"
     -f "$here/Dockerfile"
 )
 start=$(date +%s)

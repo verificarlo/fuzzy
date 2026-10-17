@@ -68,10 +68,28 @@ close() {
     fi
 }
 
+# A shared runtime must apply precision settings even when a plain program
+# loads the first instrumented extension late in its lifetime.
+precision() {
+    local name=$1
+    shift
+    VFC_BACKENDS=$RN "$@" >"$work/$name.full"
+    VFC_BACKENDS="$RN --precision-binary64=40 --precision-binary32=16" "$@" >"$work/$name.reduced"
+    if cmp -s "$work/$name.full" "$work/$name.reduced"; then
+        fail "$name ignores reduced precision"
+    else
+        pass "$name applies reduced precision"
+    fi
+}
+
 export VFC_BACKENDS=$SR
 # The other checks select libm themselves. With libm=ieee, the preloaded
 # library is empty: nothing loads PRISM before the package under test does.
 fuzzy use libm=ieee >/dev/null
+
+march=$level
+if [ "$level" = x86-64-v1 ]; then march=x86-64; fi
+"$here/check-compiler-wrappers.sh" "$march"
 
 echo "== PRISM libraries"
 # Each must load on its own, from an uninstrumented program, and share one
@@ -93,6 +111,7 @@ blas() { fuzzy run "lapack=$1" -- "$work/test_blas"; }
 varies lapack-prism blas prism
 constant lapack-ieee blas ieee
 close lapack blas ieee -- blas prism
+precision lapack blas prism
 
 echo "== CPython"
 python_probe='
@@ -105,6 +124,7 @@ py() { fuzzy run "python=$1" -- "$FUZZY_ROOT/python/3.12/bin/python3" -c "$pytho
 varies python-prism py prism
 constant python-ieee py ieee
 close python py ieee -- py prism
+precision python py prism
 # Not checked: sum() of floats. Since 3.12 it uses Neumaier compensated
 # summation, whose error term is computed by exact operations; stochastic
 # rounding leaves exact operations unchanged, so the compensation recovers
@@ -142,6 +162,7 @@ close numpy np_all ieee ieee -- np_all prism prism
 # still reach the static kernels.
 rn_np_all() { VFC_BACKENDS=$RN np_all "$@"; }
 constant numpy-prism.lapack-prism:rn rn_np_all prism prism
+precision numpy np_all prism ieee
 if (cd "$work" && "$work/numpy-prism/bin/python" -m pytest -q -p no:cacheprovider "$here/numpy-sanity-check.py"); then
     pass "numpy-sanity-check.py (prism)"
 else
@@ -159,6 +180,8 @@ constant libm-ieee:binary32 libm ieee 32
 close libm libm ieee 64 -- libm prism 64
 rn_libm() { VFC_BACKENDS=$RN libm "$@"; }
 constant libm-prism:rn rn_libm prism 64
+precision libm-binary64 libm prism 64
+precision libm-binary32 libm prism 32
 # The uninstrumented CPython calls the preloaded functions too. Many values:
 # stochastic rounding moves a correctly rounded result with probability
 # |error| / ulp, which is small for some inputs.
@@ -166,15 +189,51 @@ py_libm() { fuzzy run python=ieee "libm=$1" -- "$FUZZY_ROOT/python/3.12/bin/pyth
 varies libm-prism:python py_libm prism
 constant libm-ieee:python py_libm ieee
 
+# Keep every dependency ieee while testing a package's own native code. This
+# catches a nominal prism wheel that accidentally contains only plain code.
+echo "== SciPy, scikit-learn and the PyTorch packages"
+extra_packages=(scipy sklearn torch torchaudio torchvision)
+uv venv -q "$work/packages" --python "$FUZZY_ROOT/python/3.12/bin/python3"
+fuzzy use --python "$work/packages" numpy=ieee scipy=ieee sklearn=ieee \
+    torch=ieee torchaudio=ieee torchvision=ieee >/dev/null
+probe() {
+    fuzzy run python=ieee lapack=ieee libm=ieee -- \
+        env OMP_NUM_THREADS=1 "$work/packages/bin/python" "$here/package-probe.py" "$1"
+}
+for pkg in "${extra_packages[@]}"; do
+    constant "$pkg-ieee" probe "$pkg"
+    probe "$pkg" >"$work/$pkg.ieee"
+    fuzzy use --python "$work/packages" "$pkg=prism" >/dev/null
+    varies "$pkg-prism:isolated" probe "$pkg"
+    VFC_BACKENDS=$RN probe "$pkg" >"$work/$pkg.rn"
+    if result=$($sys_python "$here/ulpdiff.py" "$work/$pkg.ieee" "$work/$pkg.rn" "$MAX_ULP" 2>&1); then
+        pass "$pkg: prism rn vs ieee, $result"
+    else
+        fail "$pkg: prism rn vs ieee, $result"
+    fi
+    rn_probe() { VFC_BACKENDS=$RN probe "$pkg"; }
+    constant "$pkg-prism:rn" rn_probe
+    precision "$pkg" probe "$pkg"
+    seeded_probe() { VFC_BACKENDS="$SR --seed=42" probe "$pkg"; }
+    constant "$pkg-prism:seed" seeded_probe
+    fuzzy use --python "$work/packages" "$pkg=ieee" >/dev/null
+done
+# Load every prism package into the same process, and verify that the wheel
+# builds use the shared runtime rather than bundling private copies.
+fuzzy use --python "$work/packages" numpy=prism scipy=prism sklearn=prism \
+    torch=prism torchaudio=prism torchvision=prism >/dev/null
+fuzzy run python=ieee libm=ieee -- "$work/packages/bin/python" "$here/check-runtime.py"
+
 echo "== ISA ($level)"
-if "$here/check-isa.sh" "$level" /usr/local/lib/libprism-static.so "$FUZZY_ROOT" "$work"/numpy-*/lib/python3.12/site-packages/numpy; then
+$sys_python "$here/check-wheels.py" "$FUZZY_ROOT" "$work/wheels-audit"
+if "$here/check-isa.sh" "$level" /usr/local/lib/libprism-static.so "$FUZZY_ROOT" "$work/wheels-audit"; then
     pass "instructions match $level"
 else
     fail "instructions beyond $level"
 fi
 
 echo "== RUNPATH"
-bad=$(find "$FUZZY_ROOT" "$work"/numpy-*/lib/python3.12/site-packages/numpy -type f \( -name '*.so*' -o -perm -u+x \) -print0 |
+bad=$(find "$FUZZY_ROOT" "$work/wheels-audit" -type f \( -name '*.so*' -o -perm -u+x \) -print0 |
     xargs -0 -r readelf -d 2>/dev/null | grep -E '\((RUNPATH|RPATH)\)' | grep -E '/(ieee|prism)(/|:|\])' || true)
 if [ -z "$bad" ]; then pass "no RUNPATH into a build directory"; else fail "RUNPATH into a build directory: $bad"; fi
 

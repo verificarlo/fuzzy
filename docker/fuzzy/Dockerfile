@@ -12,7 +12,7 @@
 # Requires BuildKit (docker) or buildah (podman) for COPY --from of stages.
 
 # The level's Verificarlo image: PRISM's static kernels compiled for MARCH.
-ARG BASE=localhost/verificarlo/verificarlo:v2.6.1-avx2
+ARG BASE=localhost/verificarlo/verificarlo:v2.7.0-avx2
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.12.21
 
 FROM ${UV_IMAGE} AS uv
@@ -29,7 +29,7 @@ ENV MARCH=${MARCH} \
     UV_NO_CACHE=1
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends -qq \
-    wget xz-utils cmake pkgconf patchelf \
+    wget xz-utils cmake pkgconf patchelf ninja-build libjpeg-dev libpng-dev \
     libssl-dev zlib1g-dev libbz2-dev liblzma-dev libreadline-dev \
     libsqlite3-dev libncurses-dev libffi-dev libgdbm-dev uuid-dev && \
     rm -rf /var/lib/apt/lists/* && \
@@ -84,12 +84,75 @@ FROM numpy AS numpy-ieee
 RUN /opt/fuzzy-src/recipes/numpy/build.sh ieee
 
 FROM numpy AS numpy-prism
-ARG PRISM_RUNTIME_VERSION=0.0.11+x86.64.v3
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
 RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
     /opt/fuzzy-src/recipes/numpy/build.sh prism
 
+FROM build-env AS scipy
+COPY docker/fuzzy/recipes/wheeltool.py /opt/fuzzy-src/recipes/
+COPY docker/fuzzy/recipes/scipy/ /opt/fuzzy-src/recipes/scipy/
+COPY --from=numpy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+
+FROM scipy AS scipy-ieee
+RUN /opt/fuzzy-src/recipes/scipy/build.sh ieee
+
+FROM scipy AS scipy-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/scipy/build.sh prism
+
+FROM scipy AS sklearn
+COPY docker/fuzzy/recipes/sklearn/ /opt/fuzzy-src/recipes/sklearn/
+COPY --from=scipy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+
+FROM sklearn AS sklearn-ieee
+RUN /opt/fuzzy-src/recipes/sklearn/build.sh ieee
+
+FROM sklearn AS sklearn-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/sklearn/build.sh prism
+
+FROM scipy AS torch
+ARG TORCH_BUILD_JOBS=2
+ENV TORCH_BUILD_JOBS=${TORCH_BUILD_JOBS}
+COPY docker/fuzzy/recipes/torch/ /opt/fuzzy-src/recipes/torch/
+
+FROM torch AS torch-ieee
+RUN /opt/fuzzy-src/recipes/torch/build.sh ieee
+
+FROM torch AS torch-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/torch/build.sh prism
+
+FROM torch AS torch-extension
+COPY --from=torch-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+
+FROM torch-extension AS torchaudio
+COPY docker/fuzzy/recipes/torchaudio/ /opt/fuzzy-src/recipes/torchaudio/
+
+FROM torchaudio AS torchaudio-ieee
+RUN /opt/fuzzy-src/recipes/torchaudio/build.sh ieee
+
+FROM torchaudio AS torchaudio-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/torchaudio/build.sh prism
+
+FROM torch-extension AS torchvision
+COPY docker/fuzzy/recipes/torchvision/ /opt/fuzzy-src/recipes/torchvision/
+
+FROM torchvision AS torchvision-ieee
+RUN /opt/fuzzy-src/recipes/torchvision/build.sh ieee
+
+FROM torchvision AS torchvision-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/torchvision/build.sh prism
+
 FROM base AS prism-runtime
-ARG PRISM_RUNTIME_VERSION=0.0.11+x86.64.v3
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
 COPY docker/fuzzy/recipes/wheeltool.py /opt/fuzzy-src/recipes/
 RUN python3 /opt/fuzzy-src/recipes/wheeltool.py marker \
     fuzzy-prism-runtime "${PRISM_RUNTIME_VERSION}" /opt/fuzzy/wheels/prism
@@ -97,14 +160,14 @@ RUN python3 /opt/fuzzy-src/recipes/wheeltool.py marker \
 FROM ${BASE} AS final
 ARG MARCH=x86-64-v3
 ARG LEVEL=x86-64-v3
-ARG VERIFICARLO_VERSION=v2.6.1
+ARG VERIFICARLO_VERSION=v2.7.0
 LABEL org.verificarlo.fuzzy.level=${LEVEL} \
       org.verificarlo.fuzzy.march=${MARCH} \
       org.verificarlo.version=${VERIFICARLO_VERSION}
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends -qq \
     libssl3t64 zlib1g libbz2-1.0 liblzma5 libreadline8t64 libsqlite3-0 \
-    libncursesw6 libffi8 libgdbm6t64 libuuid1 && \
+    libncursesw6 libffi8 libgdbm6t64 libuuid1 libjpeg-turbo8 libpng16-16t64 && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY docker/fuzzy/bin/fuzzy /usr/local/bin/fuzzy
@@ -122,6 +185,21 @@ RUN ldconfig
 COPY --from=numpy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
 COPY --from=numpy-ieee /opt/fuzzy/registry/numpy.env /opt/fuzzy/registry/
 COPY --from=numpy-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=scipy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=scipy-ieee /opt/fuzzy/registry/scipy.env /opt/fuzzy/registry/
+COPY --from=scipy-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=sklearn-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=sklearn-ieee /opt/fuzzy/registry/sklearn.env /opt/fuzzy/registry/
+COPY --from=sklearn-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torch-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torch-ieee /opt/fuzzy/registry/torch.env /opt/fuzzy/registry/
+COPY --from=torch-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchaudio-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchaudio-ieee /opt/fuzzy/registry/torchaudio.env /opt/fuzzy/registry/
+COPY --from=torchaudio-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchvision-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchvision-ieee /opt/fuzzy/registry/torchvision.env /opt/fuzzy/registry/
+COPY --from=torchvision-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
 COPY --from=prism-runtime /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
 ENV FUZZY_ROOT=/opt/fuzzy \
     LD_LIBRARY_PATH=/opt/fuzzy/active/lib:/usr/local/lib \
@@ -139,7 +217,7 @@ ENV FUZZY_ROOT=/opt/fuzzy \
 RUN sed -i '1s|^#!.*python3$|#!/usr/bin/python3|' /usr/local/bin/verificarlo && \
     fuzzy use lapack=prism python=prism && \
     uv venv --seed --no-cache /opt/fuzzy/venv --python /opt/fuzzy/python/3.12/bin/python3 && \
-    UV_NO_CACHE=1 fuzzy use numpy=prism && \
+    UV_NO_CACHE=1 fuzzy use numpy=prism scipy=prism sklearn=prism torch=prism torchaudio=prism torchvision=prism && \
     fuzzy use libm=prism && \
     fuzzy list
 WORKDIR /workdir
@@ -149,5 +227,6 @@ FROM final AS test
 ARG LEVEL=x86-64-v3
 COPY docker/fuzzy/tests/ /opt/fuzzy-tests/
 COPY docker/fuzzy/recipes/wheeltool.py /opt/fuzzy-tests/
+COPY docker/fuzzy/recipes/wrappers/ /opt/fuzzy-tests/wrappers/
 COPY docker/resources/lapack/test_blas.c docker/resources/numpy-sanity-check.py /opt/fuzzy-tests/
 RUN /opt/fuzzy-tests/run.sh "${LEVEL}"
