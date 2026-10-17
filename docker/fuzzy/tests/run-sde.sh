@@ -17,7 +17,13 @@ root=$(cd "$(dirname "$0")/../../.." && pwd)
 args=(--rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
     -v "$sde:/opt/intel-sde:ro" -v "$root:/opt/fuzzy-checks:ro")
 if [ "$engine" = podman ]; then args+=(--security-opt label=disable); fi
+if [ -n "${FUZZY_OFFLINE_BUNDLE:-}" ]; then
+    args+=(-v "$FUZZY_OFFLINE_BUNDLE:/opt/fuzzy-offline:ro" -e FUZZY_OFFLINE=1)
+fi
 "$engine" run "${args[@]}" "$image" bash -euc '
+    if [ "${FUZZY_OFFLINE:-}" = 1 ]; then
+        export PATH=/opt/fuzzy-offline/bin:$PATH PIP_NO_INDEX=1 PIP_FIND_LINKS=/opt/fuzzy-offline/wheels
+    fi
     mkdir -p /tmp/fuzzy-tests
     cp /opt/fuzzy-checks/docker/fuzzy/tests/* /tmp/fuzzy-tests/
     cp /opt/fuzzy-checks/docker/fuzzy/recipes/wheeltool.py /tmp/fuzzy-tests/

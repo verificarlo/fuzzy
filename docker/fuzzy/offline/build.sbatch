@@ -7,7 +7,9 @@
 #SBATCH --mem=64G
 #SBATCH --time=06:00:00
 set -euo pipefail
-source_dir=$(realpath "${1:?SOURCE directory required}")
+source_input=$(realpath "${1:?SOURCE directory required}")
+source_dir=${SLURM_TMPDIR:?}/fuzzy-source
+cp -a "$source_input" "$source_dir"
 bundle=$(realpath "${2:?BUNDLE directory required}")
 base_archive=$(realpath "${3:?BASE OCI archive required}")
 uv_archive=$(realpath "${4:?UV OCI archive required}")
