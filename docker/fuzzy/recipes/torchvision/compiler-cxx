@@ -1,0 +1,11 @@
+#!/usr/bin/python3
+"""Answer extension compiler probes with Clang and compile through PRISM."""
+import os
+from pathlib import Path
+import sys
+
+arguments = sys.argv[1:]
+if arguments in (["-v"], ["--version"], ["-dumpfullversion", "-dumpversion"]):
+    os.execvp("clang++", ["clang++", *arguments])
+driver = str(Path(__file__).resolve().parent.parent / "wrappers" / "meson-verificarlo-c++")
+os.execv(driver, [driver, *arguments])

@@ -6,6 +6,8 @@ flavor "$build"
 version=${TORCHVISION_VERSION:-0.20.1}
 requires=()
 if [ "$build" = prism ]; then
+    # PyTorch probes wrappers with -v and GCC's version-query arguments.
+    CXX=$RECIPES/torchvision/compiler-cxx
     FLAGS="$FLAGS --exclude-file=$RECIPES/torch/vfc-exclude.txt"
     requires=(--requires "${PRISM_RUNTIME:?PRISM_RUNTIME must be set}")
 fi
