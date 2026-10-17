@@ -80,8 +80,12 @@ The root directory must already contain `bundle/`, `base-v4.oci.tar` and
 `uv.oci.tar`. Authenticate SSH, including the site's MFA, before starting the
 controller. The v4 workflow then uses `remote-build.py`: it stages a clean
 source revision, submits the Slurm job, observes that exact job handle and
-imports its checksum-verified OCI archive after all checks pass. A repeated
-controller invocation resumes the handle stored on the submission host.
+imports its checksum-verified OCI archive after all checks pass. Source
+snapshots come from `git archive`, are published atomically, and remain
+unchanged when several levels use the same revision. The node-local copy
+preserves contents and mode bits without copying host ACLs or xattrs.
+A repeated controller invocation resumes the handle stored on the
+submission host.
 
 The controller also uses `checkpoint-vN.tar` under that root. Completed
 stages are restored from a checksum-verified cache and saved when the job

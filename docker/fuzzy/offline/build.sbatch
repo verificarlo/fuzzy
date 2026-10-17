@@ -9,7 +9,10 @@
 set -euo pipefail
 source_input=$(realpath "${1:?SOURCE directory required}")
 source_dir=${SLURM_TMPDIR:?}/fuzzy-source
-cp -a "$source_input" "$source_dir"
+mkdir -p "$source_dir"
+# File contents and mode bits are build inputs; source-host ACLs and xattrs
+# are not portable to node-local storage on every compute node.
+rsync -rltp --no-acls --no-xattrs "$source_input/" "$source_dir/"
 bundle=$(realpath "${2:?BUNDLE directory required}")
 base_archive=$(realpath "${3:?BASE OCI archive required}")
 uv_archive=$(realpath "${4:?UV OCI archive required}")

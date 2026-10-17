@@ -18,6 +18,37 @@ def run(arguments, **kwargs):
     return subprocess.run(arguments, check=True, text=True, **kwargs)
 
 
+def stage_source(ssh, source, revision, destination):
+    """Publish one complete, immutable snapshot for concurrent level builds."""
+    script = r'''
+set -euo pipefail
+destination=$1
+revision=$2
+temporary=$(mktemp -d "${destination}.stage.XXXXXX")
+trap 'rm -rf -- "$temporary"' EXIT
+tar --extract --file=- --directory="$temporary" --same-permissions --no-same-owner --no-acls --no-xattrs
+printf '%s\n' "$revision" > "$temporary/.fuzzy-revision"
+(
+    flock -x 9
+    if [ -e "$destination" ]; then
+        test "$(cat "$destination/.fuzzy-revision")" = "$revision"
+    else
+        mv -- "$temporary" "$destination"
+    fi
+) 9>"${destination}.lock"
+'''
+    archive = subprocess.Popen(
+        ["git", "-C", str(source), "-c", "tar.umask=0022", "archive", "--format=tar",
+         revision, ".dockerignore", "docker/fuzzy", "docker/resources"], stdout=subprocess.PIPE)
+    try:
+        ssh(["bash", "-c", script, "bash", destination, revision], stdin=archive.stdout)
+    finally:
+        archive.stdout.close()
+        status = archive.wait()
+    if status:
+        raise SystemExit(f"git archive failed: {status}")
+
+
 def main():
     level = sys.argv[1]
     isa = {"v1": "sse2", "v2": "sse4", "v3": "avx2", "v4": "avx512"}[level]
@@ -28,7 +59,7 @@ def main():
     source = Path(__file__).resolve().parents[3]
     revision = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
     dirty = subprocess.check_output(["git", "-C", str(source), "status", "--porcelain",
-                                    "--", "docker/fuzzy", "docker/resources"], text=True)
+                                    "--", ".dockerignore", "docker/fuzzy", "docker/resources"], text=True)
     if dirty:
         raise SystemExit("Commit the image sources before submitting a revision-identified build")
     remote_source = f"{remote_root}/sources/{revision}"
@@ -39,10 +70,8 @@ def main():
         return run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", host,
                     shlex.join(arguments)], **kwargs)
 
-    ssh(["mkdir", "-p", remote_source, output])
-    run(["rsync", "-az", "--protect-args", "--relative", "--exclude=__pycache__", "--exclude=*.pyc",
-         ".dockerignore", "docker/fuzzy/", "docker/resources/",
-         f"{host}:{remote_source}/"], cwd=source)
+    ssh(["mkdir", "-p", f"{remote_root}/sources", output])
+    stage_source(ssh, source, revision, remote_source)
     arguments = ["sbatch", "--parsable", f"--account={account}",
                  f"--job-name=fuzzy-{level}-{revision[:8]}", f"--output={log}",
                  f"{remote_source}/docker/fuzzy/offline/build.sbatch", remote_source,
