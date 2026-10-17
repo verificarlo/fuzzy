@@ -150,8 +150,12 @@ does not, and that the PRISM libraries load on their own (they need `libhwy`
 and the shared `libprism-config`). It also checks that `prism --mode=rn` stays
 within 16 ULPs of `ieee` for the numerical probes and that mixed selections
 perturb only what they should. Finally, it
-checks that no binary uses vector registers wider than the level, that no
-RUNPATH points into a build directory, and that the `fuzzy` tool works.
+checks that the built packages use no vector registers wider than the level,
+that no RUNPATH points into a build directory, and that the `fuzzy` tool works.
+Pillow's uninstrumented, prebuilt JPEG and AVIF codecs contain kernels for
+several CPUs and select them through CPUID. Those two codec libraries are
+exempt from the static register scan; JPEG, AVIF, PNG, WebP, TIFF and JPEG2000
+encoding and decoding must pass on each target CPU under SDE instead.
 
 ## PyTorch CPU backends
 

@@ -25,8 +25,15 @@ the required local distribution mechanism.
   double-word rounding changes. Its PRISM submodule is v0.0.12.
 - The local v3 base reports Verificarlo 2.7.0; `libprism-static.so` lists
   `libprism-config.so` and `libhwy.so` as dependencies.
-- C and C++ response-file regression checks pass, including actual PRISM
-  linkage, deterministic RN and stochastic SR. The full image rerun is pending.
+- Full images compiled on all four levels. Their native checks exposed a
+  Meson `--as-needed` link dropping the Verificarlo initializer in SciPy and
+  scikit-learn: RN and seed settings were ignored. Retaining that runtime
+  fixes the C/C++ response-file regression with those linker flags; the
+  complete image rerun remains required.
+- Pillow's prebuilt JPEG/AVIF codec kernels triggered the static register
+  scan. Encoding and decoding JPEG, AVIF, PNG, WebP, TIFF and JPEG2000 passed
+  under the v1, v2 and v3 CPU profiles. These uninstrumented codecs use CPU
+  dispatch; the mandatory complete-image SDE gate now exercises them too.
 - The v1 SDE CPUID profile accepts a baseline executable and rejects SSE3.
 - SDE 9.58 follows Python subprocesses on the workstation and Rorqual;
   the v1 profile rejects SSE3 in a followed child. C and C++ response-file

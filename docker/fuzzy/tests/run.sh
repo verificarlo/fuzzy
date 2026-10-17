@@ -236,6 +236,10 @@ for pkg in "${extra_packages[@]}"; do
     constant "$pkg-prism:seed" seeded_probe
     fuzzy use --python "$work/packages" "$pkg=ieee" >/dev/null
 done
+# The plain third-party codecs contain CPUID-dispatched kernels. Exercise
+# them on the target CPU as well as statically auditing our own packages.
+fuzzy run python=ieee lapack=ieee libm=ieee -- \
+    "$work/packages/bin/python" "$here/check-image-codecs.py"
 # Load every prism package into the same process, and verify that the wheel
 # builds use the shared runtime rather than bundling private copies.
 fuzzy use --python "$work/packages" numpy=prism scipy=prism sklearn=prism \

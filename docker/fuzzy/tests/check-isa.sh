@@ -7,8 +7,11 @@
 # only for x86-64-v1/v2, ymm for v3, zmm for v4. Anything narrower means
 # Highway picked a narrower target than -march (e.g. SSSE3 without
 # HWY_DISABLE_PCLMUL_AES). The shared objects and executables under each PATH
-# must not use registers wider than the level: an AVX-512 instruction in a
-# v3 image is a SIGILL on an AVX2 CPU, and PRISM would not see its operands.
+# must not use registers wider than the level: executing an AVX-512 kernel
+# in an instrumented v3 package passes operands PRISM cannot read.
+# The uninstrumented Pillow JPEG/AVIF codecs are the sole exception: their
+# prebuilt libraries dispatch on CPUID. check-image-codecs.py exercises
+# encoding and decoding under each target CPU in the mandatory SDE gate.
 # SSE4 instructions in a v1 image are not detected here.
 set -euo pipefail
 level=${1:?usage: check-isa.sh <level> LIBPRISM PATH...}
@@ -34,6 +37,12 @@ fi
 
 [ -n "$forbidden" ] || exit $status
 while IFS= read -r -d '' file; do
+    case $file in
+        */site-packages/pillow.libs/libjpeg-*.so.* | */site-packages/pillow.libs/libavif-*.so.*)
+            echo "$(basename "$file"): uninstrumented Pillow codec; target CPU execution required"
+            continue
+            ;;
+    esac
     file -b "$file" | grep -q '^ELF' || continue
     n=$(objdump -d --no-show-raw-insn "$file" 2>/dev/null | grep -cE "%($forbidden)" || true)
     if [ "$n" -gt 0 ]; then
