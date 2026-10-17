@@ -83,6 +83,11 @@ source revision, submits the Slurm job, observes that exact job handle and
 imports its checksum-verified OCI archive after all checks pass. A repeated
 controller invocation resumes the handle stored on the submission host.
 
+The controller also uses `checkpoint-vN.tar` under that root. Completed
+stages are restored from a checksum-verified cache and saved when the job
+exits, including after a later check fails. Source changes still invalidate
+the corresponding Dockerfile stages; the normal image tests remain required.
+
 This lets the `avx512` runner label describe an AVX-512 build capability
 provided by Slurm. The controller itself can run on an AVX2 workstation;
 it never executes the v4 binaries. A temporary runner may be configured

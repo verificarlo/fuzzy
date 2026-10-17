@@ -47,9 +47,9 @@ def main():
                  f"--job-name=fuzzy-{level}-{revision[:8]}", f"--output={log}",
                  f"{remote_source}/docker/fuzzy/offline/build.sbatch", remote_source,
                  f"{remote_root}/bundle", f"{remote_root}/base-{level}.oci.tar",
-                 f"{remote_root}/uv.oci.tar", output, level]
-    if level != "v4":
-        arguments.append(f"{remote_root}/intel-sde")
+                 f"{remote_root}/uv.oci.tar", output, level,
+                 f"{remote_root}/intel-sde" if level != "v4" else "",
+                 f"{remote_root}/checkpoint-{level}.tar"]
     # Persist the handle at the submission host before the SSH command
     # returns. A controller restart observes that job instead of resubmitting
     # a build whose submission or subsequent observation was interrupted.

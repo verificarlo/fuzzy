@@ -1,5 +1,5 @@
 #!/bin/bash
-# Submit with: sbatch --account=ACCOUNT build.sbatch SOURCE BUNDLE BASE UV OUTPUT LEVEL [SDE]
+# Submit with: sbatch --account=ACCOUNT build.sbatch SOURCE BUNDLE BASE UV OUTPUT LEVEL [SDE] [CACHE]
 # BASE is an OCI archive tagged localhost/fuzzy-offline-base:LEVEL.
 # All downloads and source preparation happen before this compute job.
 #SBATCH --job-name=fuzzy-level
@@ -16,6 +16,7 @@ uv_archive=$(realpath "${4:?UV OCI archive required}")
 output=$(realpath -m "${5:?OUTPUT directory required}")
 level=${6:?LEVEL required}
 sde=${7:-}
+cache_archive=${8:-}
 case $level in
     v1) isa=sse2 ;;
     v2) isa=sse4 ;;
@@ -38,6 +39,29 @@ engine=$source_dir/docker/fuzzy/offline/podman.sh
 "$engine" load -i "$base_archive"
 "$engine" tag "localhost/fuzzy-offline-base:$level" "localhost/verificarlo/verificarlo:v2.7.0-$isa"
 "$engine" load -i "$uv_archive"
+if [ -n "$cache_archive" ]; then
+    cache_archive=$(realpath -m "$cache_archive")
+    if [ -f "$cache_archive" ]; then
+        sha256sum -c "$cache_archive.sha256"
+        "$engine" load -i "$cache_archive"
+    fi
+    # Preserve completed stages even if a later build or check fails. A
+    # cache never bypasses the normal Dockerfile dependency and test gates.
+    checkpoint() {
+        result=$?
+        trap - EXIT
+        (
+            mapfile -t images < <("$engine" images --all --no-trunc --format '{{.ID}}' | sort -u)
+            [ "${#images[@]}" -gt 0 ] &&
+            "$engine" save --quiet --multi-image-archive --format docker-archive \
+                -o "$cache_archive.partial" "${images[@]}" &&
+            mv "$cache_archive.partial" "$cache_archive" &&
+            sha256sum "$cache_archive" > "$cache_archive.sha256"
+        ) || echo "Could not save optional stage cache: $cache_archive" >&2
+        exit "$result"
+    }
+    trap checkpoint EXIT
+fi
 srun --cpu-bind=cores docker/fuzzy/build.sh "$level" "$engine"
 image=verificarlo/fuzzy:v2.7.0-x86-64-$level
 if [ "$level" != v4 ]; then
