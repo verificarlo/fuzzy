@@ -165,8 +165,11 @@ a = rng.random((64, 64)) + 64 * np.eye(64)
 print(np.add.reduce(x).hex(), (x * x).sum().hex(),
       *[v.hex() for v in (a @ a[:, :2]).ravel()[:8]],
       *[v.hex() for v in np.linalg.solve(a, x[:64])[:8]])'
-np_reduce() { fuzzy run "python=ieee" "lapack=$2" -- "$work/numpy-$1/bin/python" -c "import numpy as np; print(np.add.reduce(np.full(10000, 0.1)).hex())"; }
-np_dot() { fuzzy run "python=ieee" "lapack=$2" -- "$work/numpy-$1/bin/python" -c "import numpy as np; a = np.full((64, 64), 0.1); print(np.dot(a, 2 * a)[0, 0].hex())"; }
+# A single scalar reduction usually has only two possible rounded outputs.
+# Sample several independent results so five stochastic runs cannot easily
+# coincide and falsely look like an uninstrumented package.
+np_reduce() { fuzzy run "python=ieee" "lapack=$2" -- "$work/numpy-$1/bin/python" -c "import numpy as np; x = np.full(10000, 0.1); print(*(np.add.reduce(x).hex() for _ in range(16)))"; }
+np_dot() { fuzzy run "python=ieee" "lapack=$2" -- "$work/numpy-$1/bin/python" -c "import numpy as np; a = np.full((64, 64), 0.1); print(*(v.hex() for v in np.dot(a, 2 * a)[0, :8]))"; }
 np_all() { fuzzy run "python=ieee" "lapack=$2" -- "$work/numpy-$1/bin/python" -c "$numpy_probe"; }
 # numpy's own loops follow the numpy build, BLAS calls follow lapack.
 varies numpy-prism.lapack-ieee:reduce np_reduce prism ieee
