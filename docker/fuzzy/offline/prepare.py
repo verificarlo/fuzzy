@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage the release's sources and build wheels for an offline Podman build.
+"""Stage release sources and build/runtime wheels for an offline Podman build.
 
 Run on a networked machine with CPython 3.12 and pip:
     python3 prepare.py BUNDLE
@@ -10,11 +10,13 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 
 
 ARCHIVES = [
@@ -35,6 +37,15 @@ BUILD_REQUIREMENTS = [
     "joblib", "threadpoolctl", "sympy==1.13.1", "filelock", "networkx",
     "jinja2", "fsspec", "typing_extensions", "requests",
 ]
+NATIVE_DISTRIBUTIONS = {"numpy", "scipy", "scikit-learn", "torch", "torchaudio", "torchvision"}
+
+
+def runtime_dependencies(metadata):
+    # These distributions are built by the recipes. Stage their other
+    # runtime dependencies directly from the release's package metadata.
+    return [requirement for requirement in metadata.get("project", {}).get("dependencies", [])
+            if re.split(r"[\s\[<>=!~;@]", requirement, maxsplit=1)[0].lower().replace("_", "-")
+            not in NATIVE_DISTRIBUTIONS]
 
 
 def run(*arguments):
@@ -77,6 +88,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="fuzzy-prefetch-") as temporary:
         work = Path(temporary)
         requirement_files = []
+        runtime_requirements = []
         for url, ref in REPOSITORIES:
             key = url + "@" + ref
             name = url.rsplit("/", 1)[1].removesuffix(".git") + "-" + ref
@@ -96,6 +108,9 @@ def main():
             record(key, path)
             if "pytorch/pytorch.git" in url:
                 requirement_files.append(checkout / "requirements.txt")
+            metadata = checkout / "pyproject.toml"
+            if metadata.exists():
+                runtime_requirements.extend(runtime_dependencies(tomllib.loads(metadata.read_text())))
 
         # NumPy's build requirements are maintained in its release archive.
         numpy_key = next(url for url in ARCHIVES if "/numpy/" in url)
@@ -103,8 +118,14 @@ def main():
         with tarfile.open(numpy_archive) as archive:
             archive.extractall(work, filter="data")
         requirement_files.append(work / "numpy-2.4.6/requirements/build_requirements.txt")
+        runtime_requirements.extend(runtime_dependencies(tomllib.loads(
+            (work / "numpy-2.4.6/pyproject.toml").read_text())))
+        sklearn_key = next(url for url in ARCHIVES if "/scikit-learn/" in url)
+        with tarfile.open(bundle / index[sklearn_key]["file"]) as archive:
+            metadata = archive.extractfile("scikit-learn-1.9.0/pyproject.toml")
+            runtime_requirements.extend(runtime_dependencies(tomllib.loads(metadata.read().decode())))
         arguments = [sys.executable, "-m", "pip", "download", "--only-binary=:all:",
-                     "--dest", str(wheels), *BUILD_REQUIREMENTS]
+                     "--dest", str(wheels), *BUILD_REQUIREMENTS, *sorted(set(runtime_requirements))]
         for requirement in requirement_files:
             arguments += ["-r", str(requirement)]
         print("+", *arguments, flush=True)
