@@ -116,15 +116,18 @@ image's `prism` builds:
 ```text
 --prism-backend=sr --prism-backend-dispatch=static --prism-backend-strict-abi
 -march=x86-64-v3 --inst-fma
--mllvm -force-vector-width=4 -mllvm -slp-max-vf=32
+-mllvm -slp-max-vf=32
 -mllvm -slp-vectorize-non-power-of-2=false -Qunused-arguments
 ```
 
 Both flavors use these LLVM vectorization settings. They keep generated
-vectors within PRISM's supported shapes; LLVM 20 otherwise creates 64-lane
-vectors in ATen and non-power-of-two vectors in LAPACK. The image build's
-compiler adapters reject any warning about skipped PRISM operations.
-ATen's explicit SIMD kernels and SLEEF still target the image's CPU level.
+SLP vectors within PRISM's supported shapes. ATen's DEFAULT kernels also
+use `-mllvm -force-vector-width=4` to prevent re-vectorization into 64 lanes.
+Other sources retain automatic loop vectorization; forcing a width in
+Fortran's unrolled BLAS dot products would create unsupported 20-lane
+operations. The image build's compiler adapters reject any warning about
+skipped PRISM operations. ATen's explicit SIMD kernels and SLEEF still
+target the image's CPU level.
 
 ## Layout
 

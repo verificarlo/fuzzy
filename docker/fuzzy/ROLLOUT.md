@@ -32,9 +32,12 @@ the required local distribution mechanism.
   Full native checks then passed on v1, v2 and v4; further compiler audit
   found skipped instrumentation, so these are not release validation passes.
 - LLVM 20 generated unsupported 64-lane vectors in ATen and non-power-of-two
-  vectors in v4 LAPACK. Both flavors now use compatible loop/SLP settings;
-  the compiler adapters fail on skipped instrumentation. The actual ATen
-  normalization kernel compiles with strict PRISM instrumentation under the
+  vectors in v4 LAPACK. Both flavors now restrict SLP shapes and limit loop
+  vectorization specifically in ATen's DEFAULT kernels. Fortran retains
+  automatic loop vectorization: forcing four iterations created 20-lane
+  operations in the unrolled BLAS dot products. The compiler adapters fail
+  on skipped instrumentation. The actual ATen normalization kernel compiles
+  with strict PRISM instrumentation under the
   candidate settings. Complete builds with these settings remain required.
 - Pillow's prebuilt JPEG/AVIF codec kernels triggered the static register
   scan. Encoding and decoding JPEG, AVIF, PNG, WebP, TIFF and JPEG2000 passed
