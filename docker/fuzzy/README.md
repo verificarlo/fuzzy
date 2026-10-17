@@ -112,7 +112,19 @@ only that level's image provides, so a wheel built for another level fails to
 install instead of running with the wrong vector width. For your own C, C++
 or Fortran code, compile with `verificarlo-c` and the same flags as the
 image's `prism` builds:
-`--prism-backend=sr --prism-backend-dispatch=static -march=x86-64-v3 --inst-fma`.
+
+```text
+--prism-backend=sr --prism-backend-dispatch=static --prism-backend-strict-abi
+-march=x86-64-v3 --inst-fma
+-mllvm -force-vector-width=4 -mllvm -slp-max-vf=32
+-mllvm -slp-vectorize-non-power-of-2=false
+```
+
+Both flavors use these LLVM vectorization settings. They keep generated
+vectors within PRISM's supported shapes; LLVM 20 otherwise creates 64-lane
+vectors in ATen and non-power-of-two vectors in LAPACK. The image build's
+compiler adapters reject any warning about skipped PRISM operations.
+ATen's explicit SIMD kernels and SLEEF still target the image's CPU level.
 
 ## Layout
 

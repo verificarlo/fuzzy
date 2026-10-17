@@ -43,4 +43,5 @@ if "-c" not in arguments:
     # The driver appends its runtime libraries after these linker options.
     if any(arg.startswith("--prism-backend=") for arg in arguments):
         arguments.append("-Wl,--no-as-needed")
-os.execvp(driver, [driver, *arguments])
+guard = Path(__file__).with_name("check-prism.py")
+os.execv(sys.executable, [sys.executable, str(guard), driver, *arguments])

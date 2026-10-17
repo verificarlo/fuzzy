@@ -12,14 +12,20 @@ FUZZY_ROOT=${FUZZY_ROOT:-/opt/fuzzy}
 RECIPES=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 flavor() {
+    # PRISM exports power-of-two vectors through 32 lanes. LLVM 20 can
+    # re-vectorize ATen's vector loops into 64 lanes and form non-power-of-two
+    # SLP packs in LAPACK. Use identical compatible shapes in both flavors.
+    local vector_flags='-mllvm -force-vector-width=4 -mllvm -slp-max-vf=32 -mllvm -slp-vectorize-non-power-of-2=false'
     case $1 in
     ieee)
         CC=clang CXX=clang++ FC=flang
-        FLAGS="-march=$MARCH"
+        FLAGS="-march=$MARCH $vector_flags"
         ;;
     prism)
-        CC=verificarlo-c CXX=verificarlo-c++ FC=verificarlo-f
-        FLAGS="--prism-backend=sr --prism-backend-dispatch=static -march=$MARCH --inst-fma"
+        CC=$RECIPES/wrappers/prism-verificarlo-c
+        CXX=$RECIPES/wrappers/prism-verificarlo-c++
+        FC=$RECIPES/wrappers/prism-verificarlo-f
+        FLAGS="--prism-backend=sr --prism-backend-dispatch=static --prism-backend-strict-abi -march=$MARCH --inst-fma $vector_flags"
         ;;
     *)
         echo "unknown build: $1 (ieee or prism)" >&2

@@ -72,3 +72,20 @@ PY
     cmp seed.1 seed.2
     echo "[PASS] $language wrapper compiles and links PRISM response files"
 done
+
+# Strict ABI mode alone does not reject an unsupported non-power-of-two
+# vector. The adapter must turn Verificarlo's skipped-operation warning
+# into a failure, even when the compiler itself exits successfully.
+cat > unsupported.c <<'C'
+typedef float vector12 __attribute__((ext_vector_type(12)));
+vector12 unsupported(vector12 a, vector12 b) { return a + b; }
+C
+if "$wrappers/meson-verificarlo-c" -c -O0 -fPIC "-march=$march" \
+    --prism-backend=sr --prism-backend-dispatch=static --prism-backend-strict-abi \
+    unsupported.c -o unsupported.o >unsupported.log 2>&1; then
+    cat unsupported.log >&2
+    echo 'unsupported vector was silently left uninstrumented' >&2
+    exit 1
+fi
+grep -q 'fuzzy: PRISM skipped operations; refusing this build' unsupported.log
+echo '[PASS] compiler adapter rejects skipped PRISM vector operations'

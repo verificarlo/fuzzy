@@ -28,8 +28,14 @@ the required local distribution mechanism.
 - Full images compiled on all four levels. Their native checks exposed a
   Meson `--as-needed` link dropping the Verificarlo initializer in SciPy and
   scikit-learn: RN and seed settings were ignored. Retaining that runtime
-  fixes the C/C++ response-file regression with those linker flags; the
-  complete image rerun remains required.
+  fixes the C/C++/Fortran response-file regression with those linker flags.
+  Full native checks then passed on v1, v2 and v4; further compiler audit
+  found skipped instrumentation, so these are not release validation passes.
+- LLVM 20 generated unsupported 64-lane vectors in ATen and non-power-of-two
+  vectors in v4 LAPACK. Both flavors now use compatible loop/SLP settings;
+  the compiler adapters fail on skipped instrumentation. The actual ATen
+  normalization kernel compiles with strict PRISM instrumentation under the
+  candidate settings. Complete builds with these settings remain required.
 - Pillow's prebuilt JPEG/AVIF codec kernels triggered the static register
   scan. Encoding and decoding JPEG, AVIF, PNG, WebP, TIFF and JPEG2000 passed
   under the v1, v2 and v3 CPU profiles. These uninstrumented codecs use CPU
