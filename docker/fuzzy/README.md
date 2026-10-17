@@ -117,7 +117,7 @@ image's `prism` builds:
 --prism-backend=sr --prism-backend-dispatch=static --prism-backend-strict-abi
 -march=x86-64-v3 --inst-fma
 -mllvm -force-vector-width=4 -mllvm -slp-max-vf=32
--mllvm -slp-vectorize-non-power-of-2=false
+-mllvm -slp-vectorize-non-power-of-2=false -Qunused-arguments
 ```
 
 Both flavors use these LLVM vectorization settings. They keep generated

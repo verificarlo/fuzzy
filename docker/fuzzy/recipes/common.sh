@@ -15,7 +15,9 @@ flavor() {
     # PRISM exports power-of-two vectors through 32 lanes. LLVM 20 can
     # re-vectorize ATen's vector loops into 64 lanes and form non-power-of-two
     # SLP packs in LAPACK. Use identical compatible shapes in both flavors.
-    local vector_flags='-mllvm -force-vector-width=4 -mllvm -slp-max-vf=32 -mllvm -slp-vectorize-non-power-of-2=false'
+    # Build systems also pass these compile options to link-only probes.
+    # Ignore unused command-line options there, including under -Werror.
+    local vector_flags='-mllvm -force-vector-width=4 -mllvm -slp-max-vf=32 -mllvm -slp-vectorize-non-power-of-2=false -Qunused-arguments'
     case $1 in
     ieee)
         CC=clang CXX=clang++ FC=flang
