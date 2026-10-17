@@ -63,3 +63,28 @@ The normal Dockerfile is transformed only to prepend temporary environment
 settings to its shell `RUN` instructions. The final image keeps the normal
 runtime environment. Offline git clones come from the staged source trees;
 other git operations remain local and cannot fetch remote transports.
+
+## A CI controller for Slurm
+
+A trusted runner can act as the controller while the compilation and tests
+run on Rorqual. Set these variables in that runner's environment:
+
+```bash
+export FUZZY_SLURM_HOST=rorqual
+export FUZZY_SLURM_ROOT=/scratch/USER/fuzzy
+export FUZZY_SLURM_ACCOUNT=ACCOUNT
+export FUZZY_CONTAINER_ENGINE=podman
+```
+
+The root directory must already contain `bundle/`, `base-v4.oci.tar` and
+`uv.oci.tar`. Authenticate SSH, including the site's MFA, before starting the
+controller. The v4 workflow then uses `remote-build.py`: it stages a clean
+source revision, submits the Slurm job, observes that exact job handle and
+imports its checksum-verified OCI archive after all checks pass. A repeated
+controller invocation resumes the handle stored on the submission host.
+
+This lets the `avx512` runner label describe an AVX-512 build capability
+provided by Slurm. The controller itself can run on an AVX2 workstation;
+it never executes the v4 binaries. A temporary runner may be configured
+for one job, so no persistent service or compilation on a login node is
+required. Publishing uses the controller's selected container engine.

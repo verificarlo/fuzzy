@@ -27,6 +27,7 @@ fi
     mkdir -p /tmp/fuzzy-tests
     cp /opt/fuzzy-checks/docker/fuzzy/tests/* /tmp/fuzzy-tests/
     cp /opt/fuzzy-checks/docker/fuzzy/recipes/wheeltool.py /tmp/fuzzy-tests/
+    cp -a /opt/fuzzy-checks/docker/fuzzy/recipes/wrappers /tmp/fuzzy-tests/
     cp /opt/fuzzy-checks/docker/resources/lapack/test_blas.c /tmp/fuzzy-tests/
     cp /opt/fuzzy-checks/docker/resources/numpy-sanity-check.py /tmp/fuzzy-tests/
     # SDE must not inherit the instrumented libm before it sets up its own

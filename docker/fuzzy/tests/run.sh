@@ -83,6 +83,24 @@ precision() {
 }
 
 export VFC_BACKENDS=$SR
+echo "== Release and defaults"
+expected=${FUZZY_VERIFICARLO_VERSION:-v2.7.0}
+actual=$(verificarlo-c --version)
+if [[ $expected =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [ "$actual" = "verificarlo ${expected#v}" ]; then
+        pass "Verificarlo release $expected"
+    else
+        fail "expected $expected, got $actual"
+    fi
+fi
+fuzzy list >"$work/default-selection"
+for pkg in lapack python libm numpy scipy sklearn torch torchaudio torchvision; do
+    if awk -v pkg="$pkg" '$1 == pkg && $5 == "prism" { found = 1 } END { exit !found }' "$work/default-selection"; then
+        pass "$pkg defaults to prism"
+    else
+        fail "$pkg does not default to prism"
+    fi
+done
 # The other checks select libm themselves. With libm=ieee, the preloaded
 # library is empty: nothing loads PRISM before the package under test does.
 fuzzy use libm=ieee >/dev/null

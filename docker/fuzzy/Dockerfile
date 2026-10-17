@@ -225,8 +225,9 @@ CMD ["/bin/bash"]
 
 FROM final AS test
 ARG LEVEL=x86-64-v3
+ARG VERIFICARLO_VERSION=v2.7.0
 COPY docker/fuzzy/tests/ /opt/fuzzy-tests/
 COPY docker/fuzzy/recipes/wheeltool.py /opt/fuzzy-tests/
 COPY docker/fuzzy/recipes/wrappers/ /opt/fuzzy-tests/wrappers/
 COPY docker/resources/lapack/test_blas.c docker/resources/numpy-sanity-check.py /opt/fuzzy-tests/
-RUN /opt/fuzzy-tests/run.sh "${LEVEL}"
+RUN FUZZY_VERIFICARLO_VERSION="${VERIFICARLO_VERSION}" /opt/fuzzy-tests/run.sh "${LEVEL}"
