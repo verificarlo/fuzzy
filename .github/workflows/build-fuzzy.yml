@@ -62,20 +62,32 @@ jobs:
           else
             docker/fuzzy/build.sh '${{ matrix.level }}' "${FUZZY_CONTAINER_ENGINE:-docker}"
           fi
-      - name: Install Intel SDE
+      - name: Export image for target CPU checks
         if: matrix.level != 'v4'
-        run: docker/fuzzy/tests/install-sde.sh "$RUNNER_TEMP/intel-sde"
-      - name: Test on the target CPU under Intel SDE
+        run: |
+          cd "$RUNNER_TEMP"
+          image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}"
+          docker save "$image" | gzip -1 > 'fuzzy-${{ matrix.level }}.tar.gz'
+          sha256sum 'fuzzy-${{ matrix.level }}.tar.gz' > 'fuzzy-${{ matrix.level }}.tar.gz.sha256'
+      - uses: actions/upload-artifact@v4
         if: matrix.level != 'v4'
-        run: docker/fuzzy/tests/run-sde.sh '${{ matrix.level }}' "verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}" "$RUNNER_TEMP/intel-sde" docker
+        with:
+          name: fuzzy-${{ matrix.level }}
+          path: |
+            ${{ runner.temp }}/fuzzy-${{ matrix.level }}.tar.gz
+            ${{ runner.temp }}/fuzzy-${{ matrix.level }}.tar.gz.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
       - name: Authenticate to Docker Hub
-        if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        if: matrix.level == 'v4' && github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
         run: printf '%s' "$DOCKER_TOKEN" | "${FUZZY_CONTAINER_ENGINE:-docker}" login --username "$DOCKER_USERNAME" --password-stdin
       - name: Publish validated level and ISA tags
-        if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        if: matrix.level == 'v4' && github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
           engine=${FUZZY_CONTAINER_ENGINE:-docker}
           for suffix in 'x86-64-${{ matrix.level }}' '${{ matrix.isa }}'; do
@@ -83,10 +95,59 @@ jobs:
             "$engine" push "docker.io/verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix"
           done
 
+  sde:
+    # A hosted v2 build can take over four hours. Give the complete target
+    # CPU checks their own job instead of sharing the six-hour job limit.
+    needs: build
+    name: Target CPU ${{ matrix.level }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {level: v1, isa: sse2}
+          - {level: v2, isa: sse4}
+          - {level: v3, isa: avx2}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free hosted runner disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/download-artifact@v4
+        with:
+          name: fuzzy-${{ matrix.level }}
+          path: ${{ runner.temp }}
+      - name: Verify and load the built image
+        run: |
+          cd "$RUNNER_TEMP"
+          sha256sum -c 'fuzzy-${{ matrix.level }}.tar.gz.sha256'
+          gzip -dc 'fuzzy-${{ matrix.level }}.tar.gz' | docker load
+          image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}"
+          actual=$(docker image inspect --format '{{index .Config.Labels "org.verificarlo.fuzzy.level"}} {{index .Config.Labels "org.verificarlo.version"}}' "$image")
+          test "$actual" = "x86-64-${{ matrix.level }} ${FUZZY_VERIFICARLO_VERSION}"
+      - name: Install Intel SDE
+        run: docker/fuzzy/tests/install-sde.sh "$RUNNER_TEMP/intel-sde"
+      - name: Test on the target CPU under Intel SDE
+        run: docker/fuzzy/tests/run-sde.sh '${{ matrix.level }}' "verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}" "$RUNNER_TEMP/intel-sde" docker
+      - name: Authenticate to Docker Hub
+        if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        run: printf '%s' "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+      - name: Publish validated level and ISA tags
+        if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}"
+          for suffix in 'x86-64-${{ matrix.level }}' '${{ matrix.isa }}'; do
+            docker tag "$image" "docker.io/verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix"
+            docker push "docker.io/verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix"
+          done
+
   required-checks:
     # Preserve the existing protected-branch check names. Each now requires
-    # the complete level-image build, including every package's image tests.
-    needs: build
+    # all native image checks and the complete v1-v3 target CPU checks.
+    needs: [build, sde]
     if: always()
     name: ${{ matrix.name }}
     strategy:
@@ -97,10 +158,11 @@ jobs:
       - name: Require all level-image checks to pass
         env:
           BUILD_RESULT: ${{ needs.build.result }}
-        run: test "$BUILD_RESULT" = success
+          SDE_RESULT: ${{ needs.sde.result }}
+        run: test "$BUILD_RESULT" = success && test "$SDE_RESULT" = success
 
   latest:
-    needs: build
+    needs: [build, sde]
     if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-24.04
     steps:
