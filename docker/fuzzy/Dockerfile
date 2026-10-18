@@ -164,6 +164,9 @@ RUN python3 /opt/fuzzy-src/recipes/wheeltool.py marker \
     fuzzy-prism-runtime "${PRISM_RUNTIME_VERSION}" /opt/fuzzy/wheels/prism
 
 FROM ${BASE} AS final
+# Keep the compiler adapter used for the package builds in the shipped image.
+COPY --from=base /usr/local/bin/verificarlo /usr/local/bin/verificarlo
+COPY --from=base /opt/fuzzy-src/recipes/wrappers/ /opt/fuzzy-src/recipes/wrappers/
 ARG MARCH=x86-64-v3
 ARG LEVEL=x86-64-v3
 ARG VERIFICARLO_VERSION=v2.7.0
