@@ -5,8 +5,10 @@ evidence that a CPU level passes its image checks.
 
 ## Required gates
 
-- [ ] Build and test v3 with all nine registered packages in both flavors.
-- [ ] Build and test v1, v2 and v4 with the same package set.
+- [x] Build v3 with all nine registered packages in both flavors and pass
+  the complete native suite.
+- [x] Build v1, v2 and v4 with the same package set and pass their complete
+  native suites.
 - [ ] Pass v1–v3 checks under Intel SDE with the target CPU profiles.
 - [ ] Verify default and mixed selections, late runtime loading, seeded
   results, SR variation, RN agreement, runtime sharing, wheel level markers,
@@ -19,6 +21,29 @@ evidence that a CPU level passes its image checks.
 The hosted wheel index is optional. The image's flat wheel directories are
 the required local distribution mechanism.
 
+## Current native results
+
+The image sources at `d1b6da7` passed the complete native suites on
+Rorqual. They match the image inputs at `d42ffb1`, whose changes are
+confined to the workflow. Each image contains all nine registered packages
+in both `ieee` and `prism` flavors.
+
+| Level | Native result | PASS markers | FAIL markers |
+| --- | --- | ---: | ---: |
+| v1 | Passed | 106 | 0 |
+| v2 | Passed | 106 | 0 |
+| v3 | Passed | 106 | 0 |
+| v4 | Passed on AVX-512 hardware | 106 | 0 |
+
+These results include the compiler regressions, package numerical checks,
+mixed selections, shared runtime, wheel metadata, RUNPATH and ISA audits,
+and CLI checks. The SciPy, scikit-learn, PyTorch, torchaudio and torchvision
+probes import the first PRISM extension into plain CPython with IEEE
+dependencies. Their RN, reduced-precision and seed checks exercise late
+runtime loading. A separate check loads all six instrumented Python
+packages together and rejects private PRISM copies.
+Full v1–v3 SDE validation and the hosted release workflow remain in progress.
+
 ## Verified during implementation
 
 - Verificarlo v2.7.0 includes the upstream PRISM dependency/configuration and
@@ -29,8 +54,8 @@ the required local distribution mechanism.
   Meson `--as-needed` link dropping the Verificarlo initializer in SciPy and
   scikit-learn: RN and seed settings were ignored. Retaining that runtime
   fixes the C/C++/Fortran response-file regression with those linker flags.
-  The complete native suites pass on v1, v2 and v3 with the compiler
-  adapter. Full validation of the final compiler revision remains required.
+  The complete native suites pass on all four levels with the current
+  compiler adapter. Full v1–v3 target-CPU validation remains in progress.
 - LLVM 20 generated unsupported 64-lane vectors in ATen and non-power-of-two
   vectors in LAPACK and NumPy. The adapter splits unsupported FP32/FP64
   arithmetic and FMA operations into supported vector chunks and scalar
@@ -64,8 +89,9 @@ the required local distribution mechanism.
   the hashed sources and wheel dependencies are staged for offline builds.
 - The controller has exercised immutable clean-revision staging, Slurm
   submission and tracking, and restoration of completed package stages.
-  Full image validation, verified archive import and publication remain
-  required for the final compiler revision.
+  The validated v4 OCI archive has been checksum-verified and imported,
+  with matching canonical/ISA image IDs and the expected release labels.
+  Full v1–v3 target-CPU validation and publication remain required.
 
 ## Current build configuration
 
@@ -73,5 +99,5 @@ PyTorch 2.5.1, torchaudio 2.5.1 and torchvision 0.20.1 are the matching
 NumPy-2-compatible CPU stack. Optional JIT/quantized CPU backends are
 disabled in both flavors; the precise configuration is documented in the
 image guide. ATen and SLEEF compile flags and ATen dispatch are capped at
-the selected level. These controls still require the full image tests on
-each CPU level before publication.
+the selected level. Complete native suites have passed at each level;
+v1–v3 also require the complete target-CPU suite before publication.
