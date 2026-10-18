@@ -9,8 +9,8 @@ evidence that a CPU level passes its image checks.
   the complete native suite.
 - [x] Build v1, v2 and v4 with the same package set and pass their complete
   native suites.
-- [ ] Pass v1–v3 checks under Intel SDE with the target CPU profiles.
-- [ ] Verify default and mixed selections, late runtime loading, seeded
+- [x] Pass v1–v3 checks under Intel SDE with the target CPU profiles.
+- [x] Verify default and mixed selections, late runtime loading, seeded
   results, SR variation, RN agreement, runtime sharing, wheel level markers,
   RUNPATHs and ISA checks for the complete package set.
 - [ ] Merge the reviewed implementation and verify the release workflow.
@@ -21,19 +21,19 @@ evidence that a CPU level passes its image checks.
 The hosted wheel index is optional. The image's flat wheel directories are
 the required local distribution mechanism.
 
-## Current native results
+## Current validation results
 
 The image sources at `d1b6da7` passed the complete native suites on
 Rorqual. They match the image inputs at `d42ffb1`, whose changes are
 confined to the workflow. Each image contains all nine registered packages
 in both `ieee` and `prism` flavors.
 
-| Level | Native result | PASS markers | FAIL markers |
-| --- | --- | ---: | ---: |
-| v1 | Passed | 106 | 0 |
-| v2 | Passed | 106 | 0 |
-| v3 | Passed | 106 | 0 |
-| v4 | Passed on AVX-512 hardware | 106 | 0 |
+| Level | Native PASS | Target-CPU SDE PASS | FAIL markers |
+| --- | ---: | ---: | ---: |
+| v1 | 106 | 106 | 0 |
+| v2 | 106 | 106 | 0 |
+| v3 | 106 | 106 | 0 |
+| v4 | 106 (AVX-512 hardware) | Not required | 0 |
 
 These results include the compiler regressions, package numerical checks,
 mixed selections, shared runtime, wheel metadata, RUNPATH and ISA audits,
@@ -42,7 +42,10 @@ probes import the first PRISM extension into plain CPython with IEEE
 dependencies. Their RN, reduced-precision and seed checks exercise late
 runtime loading. A separate check loads all six instrumented Python
 packages together and rejects private PRISM copies.
-Full v1–v3 SDE validation and the hosted release workflow remain in progress.
+The same complete suite passed under the v1–v3 SDE CPU profiles. All four
+Slurm jobs completed with exit 0, and their exported archives were
+checksum-verified and imported with matching canonical/ISA image IDs,
+release labels and runtime settings. The hosted workflow remains in progress.
 
 ## Verified during implementation
 
@@ -55,7 +58,7 @@ Full v1–v3 SDE validation and the hosted release workflow remain in progress.
   scikit-learn: RN and seed settings were ignored. Retaining that runtime
   fixes the C/C++/Fortran response-file regression with those linker flags.
   The complete native suites pass on all four levels with the current
-  compiler adapter. Full v1–v3 target-CPU validation remains in progress.
+  compiler adapter. The full v1–v3 target-CPU suites also pass.
 - LLVM 20 generated unsupported 64-lane vectors in ATen and non-power-of-two
   vectors in LAPACK and NumPy. The adapter splits unsupported FP32/FP64
   arithmetic and FMA operations into supported vector chunks and scalar
@@ -89,9 +92,9 @@ Full v1–v3 SDE validation and the hosted release workflow remain in progress.
   the hashed sources and wheel dependencies are staged for offline builds.
 - The controller has exercised immutable clean-revision staging, Slurm
   submission and tracking, and restoration of completed package stages.
-  The validated v4 OCI archive has been checksum-verified and imported,
+  All four validated OCI archives have been checksum-verified and imported,
   with matching canonical/ISA image IDs and the expected release labels.
-  Full v1–v3 target-CPU validation and publication remain required.
+  Hosted workflow validation and publication remain required.
 
 ## Current build configuration
 
@@ -99,5 +102,6 @@ PyTorch 2.5.1, torchaudio 2.5.1 and torchvision 0.20.1 are the matching
 NumPy-2-compatible CPU stack. Optional JIT/quantized CPU backends are
 disabled in both flavors; the precise configuration is documented in the
 image guide. ATen and SLEEF compile flags and ATen dispatch are capped at
-the selected level. Complete native suites have passed at each level;
-v1–v3 also require the complete target-CPU suite before publication.
+the selected level. Complete native suites have passed at each level,
+and v1–v3 have also passed the complete target-CPU suite. Hosted workflow
+validation and publication remain pending.
