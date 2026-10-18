@@ -122,9 +122,11 @@ Before PRISM instrumentation, the compiler adapter splits unsupported
 floating-point vector operations into supported power-of-two chunks and
 scalar tails. It preserves lane order and fast-math flags; other operations
 and normal compiler vectorization remain unchanged. Chunk widths follow
-the image's CPU level. The adapters also reject warnings about skipped
-PRISM operations. ATen's explicit SIMD kernels and SLEEF target the image's
-CPU level.
+the image's CPU level. On v4, the adapter also sets LLVM's minimum vector
+width for injected 512-bit calls, keeping their ZMM calling convention
+consistent with PRISM. The adapters reject warnings about skipped PRISM
+operations. ATen's explicit SIMD kernels and SLEEF target the image's CPU
+level.
 
 ## Layout
 

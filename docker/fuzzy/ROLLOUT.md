@@ -29,16 +29,20 @@ the required local distribution mechanism.
   Meson `--as-needed` link dropping the Verificarlo initializer in SciPy and
   scikit-learn: RN and seed settings were ignored. Retaining that runtime
   fixes the C/C++/Fortran response-file regression with those linker flags.
-  Full native checks then passed on v1, v2 and v4; further compiler audit
-  found skipped instrumentation, so these are not release validation passes.
+  The complete native suites pass on v1, v2 and v3 with the compiler
+  adapter. Full validation of the final compiler revision remains required.
 - LLVM 20 generated unsupported 64-lane vectors in ATen and non-power-of-two
-  vectors in v4 LAPACK. Both flavors now restrict SLP shapes and limit loop
-  vectorization specifically in ATen's DEFAULT kernels. Fortran retains
-  automatic loop vectorization: forcing four iterations created 20-lane
-  operations in the unrolled BLAS dot products. The compiler adapters fail
-  on skipped instrumentation. The actual ATen normalization kernel compiles
-  with strict PRISM instrumentation under the
-  candidate settings. Complete builds with these settings remain required.
+  vectors in LAPACK and NumPy. The adapter splits unsupported FP32/FP64
+  arithmetic and FMA operations into supported vector chunks and scalar
+  tails before instrumentation. Normal vectorization remains enabled; the
+  adapters reject skipped instrumentation. The actual ATen normalization
+  kernel compiles with no residual native FP arithmetic.
+- Native v4 regression tests exposed a calling-convention mismatch for
+  injected 512-bit calls. Setting the caller's LLVM minimum vector width
+  preserves PRISM's ZMM ABI. Native FP32/FP64 arithmetic, FMA, RN/SR and
+  C/C++/Fortran wrapper checks pass on AVX-512 hardware. Original SCAL
+  sources also pass through lengths of 129 with strict instrumentation,
+  no residual native arithmetic, and correct strides and padding.
 - Pillow's prebuilt JPEG/AVIF codec kernels triggered the static register
   scan. Encoding and decoding JPEG, AVIF, PNG, WebP, TIFF and JPEG2000 passed
   under the v1, v2 and v3 CPU profiles. These uninstrumented codecs use CPU
@@ -58,9 +62,10 @@ the required local distribution mechanism.
   a staged Ubuntu OCI image with rootless Podman using
   `overlay.ignore_chown_errors=true`. Compute nodes cannot fetch GitHub;
   the hashed sources and wheel dependencies are staged for offline builds.
-- All four offline Slurm builds are submitted. The controller has exercised
-  clean-revision staging, submission and tracking; completion, archive
-  verification and import remain to be checked.
+- The controller has exercised immutable clean-revision staging, Slurm
+  submission and tracking, and restoration of completed package stages.
+  Full image validation, verified archive import and publication remain
+  required for the final compiler revision.
 
 ## Current build configuration
 

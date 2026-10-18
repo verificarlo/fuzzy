@@ -10,17 +10,22 @@ import struct
 import sys
 import tempfile
 
+SHAPES = (1, 2, 3, 4, 8, 10, 12, 16, 20, 32, 40, 64)
+
 if sys.argv[1] == '--runtime':
     library = ctypes.CDLL(sys.argv[2])
     mode = sys.argv[3]
     for typ, scalar, bits in [('float', ctypes.c_float, 23), ('double', ctypes.c_double, 52)]:
-        a, b, c = Fraction(3, 2), 1 + Fraction(1, 2**bits), Fraction(1, 2**(bits+2))
+        # Add, multiply and FMA land halfway between representable values,
+        # giving each scalar SR probe equal probabilities for both results.
+        a, b, c = Fraction(3, 2), 1 + Fraction(1, 2**bits), -Fraction(1, 2**bits)
         expected = {'add': a+b, 'sub': a-b, 'mul': a*b, 'div': a/b, 'fma': a*b+c}
         inputs = (scalar * 384)(*([float(a)]*128 + [float(b)]*128 + [float(c)]*128))
-        for size in (1, 2, 3, 10, 12, 20, 32, 40, 64):
+        for size in SHAPES:
             for operation in expected:
                 function = getattr(library, f'{operation}_{typ}{size}')
                 function.argtypes = [ctypes.POINTER(scalar), ctypes.POINTER(scalar)]
+                function.restype = None
                 output = (scalar * 128)()
                 results = []
                 for _ in range(32):
@@ -41,14 +46,13 @@ if sys.argv[1] == '--runtime':
 march = sys.argv[1]
 flags = ['--prism-backend=sr', '--prism-backend-dispatch=static',
          '--prism-backend-strict-abi', '--inst-fma', f'-march={march}', '-O0', '-fPIC']
-shapes = (1, 2, 3, 10, 12, 20, 32, 40, 64)
 operations = {'add': 'a+b', 'sub': 'a-b', 'mul': 'a*b', 'div': 'a/b',
               'fma': '__builtin_elementwise_fma(a,b,c)'}
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     source = []
     for typ in ('float', 'double'):
-        for size in shapes:
+        for size in SHAPES:
             vector = f'v_{typ}{size}'
             source.append(f'typedef {typ} {vector} __attribute__((ext_vector_type({size})));')
             for operation, expression in operations.items():
@@ -72,4 +76,4 @@ with tempfile.TemporaryDirectory() as directory:
     for mode in ('rn', 'sr'):
         environment = dict(os.environ, VFC_BACKENDS=f'libinterflop_prism.so --mode={mode}')
         subprocess.run([sys.executable, __file__, '--runtime', str(root/'vectors.so'), mode], env=environment, check=True)
-    print('[PASS] FP32/FP64 vectors 1,2,3,10,12,20,32,40,64: complete PRISM instrumentation, SIMD, RN and SR')
+    print(f'[PASS] FP32/FP64 vectors {SHAPES}: complete PRISM instrumentation, SIMD, RN and SR')

@@ -8,7 +8,7 @@ for name, scalar in (('sscal_', C.c_float), ('dscal_', C.c_double)):
     function.argtypes = [C.POINTER(C.c_int), C.POINTER(scalar),
                          C.POINTER(scalar), C.POINTER(C.c_int)]
     function.restype = None
-    for length in (-1, 0, 1, 4, 5, 6, 13, 33):
+    for length in (-1, 0, 1, 4, 5, 6, 13, 33, 40, 41, 64, 80, 129):
         for stride in (0, 1, 2, 3):
             for factor in (0.0, 1.0, 1.25, -1.5):
                 # Dyadic inputs/products are exact in both precisions, so

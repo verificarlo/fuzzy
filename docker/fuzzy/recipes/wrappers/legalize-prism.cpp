@@ -13,6 +13,7 @@ struct LegalizePRISM : PassInfoMixin<LegalizePRISM> {
   static bool isRequired() { return true; }
   PreservedAnalyses run(Function &F, FunctionAnalysisManager &) {
     SmallVector<Instruction *> Work;
+    bool Needs512BitABI = false;
     for (auto &B : F)
       for (auto &I : B) {
         auto *T = dyn_cast<FixedVectorType>(I.getType());
@@ -20,15 +21,18 @@ struct LegalizePRISM : PassInfoMixin<LegalizePRISM> {
                    !T->getElementType()->isDoubleTy()))
           continue;
         unsigned N = T->getNumElements();
-        if (N >= 2 && isPowerOf2_32(N) && N <= 32)
-          continue;
         bool Binary = I.getOpcode() == Instruction::FAdd ||
                       I.getOpcode() == Instruction::FSub ||
                       I.getOpcode() == Instruction::FMul ||
                       I.getOpcode() == Instruction::FDiv;
         auto *Call = dyn_cast<IntrinsicInst>(&I);
-        if (Binary || (Call && (Call->getIntrinsicID() == Intrinsic::fma ||
-                               Call->getIntrinsicID() == Intrinsic::fmuladd)))
+        if (!(Binary || (Call && (Call->getIntrinsicID() == Intrinsic::fma ||
+                                 Call->getIntrinsicID() == Intrinsic::fmuladd))))
+          continue;
+#if FUZZY_VECTOR_BITS == 512
+        Needs512BitABI |= N * T->getElementType()->getScalarSizeInBits() >= 512;
+#endif
+        if (!(N >= 2 && isPowerOf2_32(N) && N <= 32))
           Work.push_back(&I);
       }
     for (auto *I : Work) {
@@ -71,7 +75,21 @@ struct LegalizePRISM : PassInfoMixin<LegalizePRISM> {
       I->replaceAllUsesWith(Result);
       I->eraseFromParent();
     }
-    return Work.empty() ? PreservedAnalyses::all() : PreservedAnalyses::none();
+    // Clang sets this for explicit vector calls. Calls introduced in IR
+    // also need it: otherwise LLVM 20 can lower a 512-bit argument into
+    // YMM pieces while PRISM's AVX-512 entry point expects a ZMM register.
+    bool UpdatedABI = false;
+    if (Needs512BitABI) {
+      unsigned Width = 0;
+      auto WidthAttribute = F.getFnAttribute("min-legal-vector-width");
+      if (WidthAttribute.isStringAttribute())
+        WidthAttribute.getValueAsString().getAsInteger(10, Width);
+      if (Width < 512) {
+        F.addFnAttr("min-legal-vector-width", "512");
+        UpdatedABI = true;
+      }
+    }
+    return Work.empty() && !UpdatedABI ? PreservedAnalyses::all() : PreservedAnalyses::none();
   }
 };
 }
