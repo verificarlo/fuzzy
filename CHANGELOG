@@ -1,4 +1,4 @@
-# [v2.7.0] Unreleased
+# [v2.7.0] 2026/10/20
 
 ## Added
     * One image per x86-64 level, with switchable ieee and PRISM builds of LAPACK, CPython, libm, NumPy, SciPy, scikit-learn, PyTorch, torchaudio and torchvision

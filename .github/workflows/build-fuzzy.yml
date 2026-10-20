@@ -85,7 +85,7 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-        run: printf '%s' "$DOCKER_TOKEN" | "${FUZZY_CONTAINER_ENGINE:-docker}" login --username "$DOCKER_USERNAME" --password-stdin
+        run: printf '%s' "$DOCKER_TOKEN" | "${FUZZY_CONTAINER_ENGINE:-docker}" login --username "$DOCKER_USERNAME" --password-stdin docker.io
       - name: Publish validated level and ISA tags
         if: matrix.level == 'v4' && github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
@@ -134,7 +134,7 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-        run: printf '%s' "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+        run: printf '%s' "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin docker.io
       - name: Publish validated level and ISA tags
         if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
@@ -170,7 +170,7 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
           DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-        run: printf '%s' "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+        run: printf '%s' "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin docker.io
       - name: Point latest at the portable v1 image
         run: |
           image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-v1"
