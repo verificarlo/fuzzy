@@ -18,8 +18,10 @@ flavor() {
         FLAGS="-march=$MARCH"
         ;;
     prism)
-        CC=verificarlo-c CXX=verificarlo-c++ FC=verificarlo-f
-        FLAGS="--prism-backend=sr --prism-backend-dispatch=static -march=$MARCH --inst-fma"
+        CC=$RECIPES/wrappers/prism-verificarlo-c
+        CXX=$RECIPES/wrappers/prism-verificarlo-c++
+        FC=$RECIPES/wrappers/prism-verificarlo-f
+        FLAGS="--prism-backend=sr --prism-backend-dispatch=static --prism-backend-strict-abi -march=$MARCH --inst-fma"
         ;;
     *)
         echo "unknown build: $1 (ieee or prism)" >&2

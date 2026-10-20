@@ -12,7 +12,7 @@
 # Requires BuildKit (docker) or buildah (podman) for COPY --from of stages.
 
 # The level's Verificarlo image: PRISM's static kernels compiled for MARCH.
-ARG BASE=localhost/verificarlo/verificarlo:v2.6.0-avx2
+ARG BASE=localhost/verificarlo/verificarlo:v2.7.0-avx2
 ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.12.21
 
 FROM ${UV_IMAGE} AS uv
@@ -29,7 +29,7 @@ ENV MARCH=${MARCH} \
     UV_NO_CACHE=1
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends -qq \
-    wget xz-utils cmake pkgconf patchelf \
+    wget xz-utils cmake pkgconf patchelf ninja-build libjpeg-dev libpng-dev \
     libssl-dev zlib1g-dev libbz2-dev liblzma-dev libreadline-dev \
     libsqlite3-dev libncurses-dev libffi-dev libgdbm-dev uuid-dev && \
     rm -rf /var/lib/apt/lists/* && \
@@ -37,6 +37,12 @@ RUN apt-get update -qq && \
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY docker/fuzzy/recipes/common.sh /opt/fuzzy-src/recipes/
 COPY docker/fuzzy/recipes/wrappers/ /opt/fuzzy-src/recipes/wrappers/
+RUN case "$MARCH" in x86-64|x86-64-v2) bits=128;; x86-64-v3) bits=256;; x86-64-v4) bits=512;; esac && \
+    clang++ -shared -fPIC -O2 -DFUZZY_VECTOR_BITS=$bits \
+    $(llvm-config-20 --cxxflags) /opt/fuzzy-src/recipes/wrappers/legalize-prism.cpp \
+    -o /opt/fuzzy-src/recipes/wrappers/legalize-prism.so \
+    $(llvm-config-20 --ldflags --libs core passes) && \
+    python3 /opt/fuzzy-src/recipes/wrappers/install-legalizer.py /usr/local/bin/verificarlo
 
 # Each stage copies only its own recipe, so that editing one recipe rebuilds
 # only that package.
@@ -59,6 +65,15 @@ RUN /opt/fuzzy-src/recipes/python/build.sh ieee
 FROM python AS python-prism
 RUN /opt/fuzzy-src/recipes/python/build.sh prism
 
+FROM base AS libm
+COPY docker/fuzzy/recipes/libm/ /opt/fuzzy-src/recipes/libm/
+
+FROM libm AS libm-ieee
+RUN /opt/fuzzy-src/recipes/libm/build.sh ieee
+
+FROM libm AS libm-prism
+RUN /opt/fuzzy-src/recipes/libm/build.sh prism
+
 # The ieee CPython and LAPACK, selected, to build the wheels of both builds.
 FROM base AS build-env
 COPY docker/fuzzy/bin/fuzzy /usr/local/bin/fuzzy
@@ -75,49 +90,129 @@ FROM numpy AS numpy-ieee
 RUN /opt/fuzzy-src/recipes/numpy/build.sh ieee
 
 FROM numpy AS numpy-prism
-ARG PRISM_RUNTIME_VERSION=0.0.8+x86.64.v3
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
 RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
     /opt/fuzzy-src/recipes/numpy/build.sh prism
 
+FROM build-env AS scipy
+COPY docker/fuzzy/recipes/wheeltool.py /opt/fuzzy-src/recipes/
+COPY docker/fuzzy/recipes/scipy/ /opt/fuzzy-src/recipes/scipy/
+COPY --from=numpy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+
+FROM scipy AS scipy-ieee
+RUN /opt/fuzzy-src/recipes/scipy/build.sh ieee
+
+FROM scipy AS scipy-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/scipy/build.sh prism
+
+FROM scipy AS sklearn
+COPY docker/fuzzy/recipes/sklearn/ /opt/fuzzy-src/recipes/sklearn/
+COPY --from=scipy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+
+FROM sklearn AS sklearn-ieee
+RUN /opt/fuzzy-src/recipes/sklearn/build.sh ieee
+
+FROM sklearn AS sklearn-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/sklearn/build.sh prism
+
+FROM scipy AS torch
+ARG TORCH_BUILD_JOBS=2
+ENV TORCH_BUILD_JOBS=${TORCH_BUILD_JOBS}
+COPY docker/fuzzy/recipes/torch/ /opt/fuzzy-src/recipes/torch/
+
+FROM torch AS torch-ieee
+RUN /opt/fuzzy-src/recipes/torch/build.sh ieee
+
+FROM torch AS torch-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/torch/build.sh prism
+
+FROM torch AS torch-extension
+COPY --from=torch-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+
+FROM torch-extension AS torchaudio
+COPY docker/fuzzy/recipes/torchaudio/ /opt/fuzzy-src/recipes/torchaudio/
+
+FROM torchaudio AS torchaudio-ieee
+RUN /opt/fuzzy-src/recipes/torchaudio/build.sh ieee
+
+FROM torchaudio AS torchaudio-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/torchaudio/build.sh prism
+
+FROM torch-extension AS torchvision
+COPY docker/fuzzy/recipes/torchvision/ /opt/fuzzy-src/recipes/torchvision/
+
+FROM torchvision AS torchvision-ieee
+RUN /opt/fuzzy-src/recipes/torchvision/build.sh ieee
+
+FROM torchvision AS torchvision-prism
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
+RUN PRISM_RUNTIME="fuzzy-prism-runtime==${PRISM_RUNTIME_VERSION}" \
+    /opt/fuzzy-src/recipes/torchvision/build.sh prism
+
 FROM base AS prism-runtime
-ARG PRISM_RUNTIME_VERSION=0.0.8+x86.64.v3
+ARG PRISM_RUNTIME_VERSION=0.0.12+x86.64.v3
 COPY docker/fuzzy/recipes/wheeltool.py /opt/fuzzy-src/recipes/
 RUN python3 /opt/fuzzy-src/recipes/wheeltool.py marker \
     fuzzy-prism-runtime "${PRISM_RUNTIME_VERSION}" /opt/fuzzy/wheels/prism
 
 FROM ${BASE} AS final
+# Keep the compiler adapter used for the package builds in the shipped image.
+COPY --from=base /usr/local/bin/verificarlo /usr/local/bin/verificarlo
+COPY --from=base /opt/fuzzy-src/recipes/wrappers/ /opt/fuzzy-src/recipes/wrappers/
 ARG MARCH=x86-64-v3
 ARG LEVEL=x86-64-v3
-ARG VERIFICARLO_VERSION=v2.6.0
+ARG VERIFICARLO_VERSION=v2.7.0
 LABEL org.verificarlo.fuzzy.level=${LEVEL} \
       org.verificarlo.fuzzy.march=${MARCH} \
       org.verificarlo.version=${VERIFICARLO_VERSION}
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends -qq \
     libssl3t64 zlib1g libbz2-1.0 liblzma5 libreadline8t64 libsqlite3-0 \
-    libncursesw6 libffi8 libgdbm6t64 libuuid1 patchelf && \
+    libncursesw6 libffi8 libgdbm6t64 libuuid1 libjpeg-turbo8 libpng16-16t64 && \
     rm -rf /var/lib/apt/lists/*
-# PRISM's run-time options (--mode, --precision-*, --seed) reach the
-# static kernels only when libprism-static.so is in the global symbol scope.
-# A program not built by verificarlo-c, such as the ieee CPython, would
-# otherwise load it with dlopen, privately, when it imports the first prism
-# module, and the kernels would keep their defaults. Preload it, for every
-# process; the file is part of the image, so this holds under Apptainer too.
-COPY docker/fuzzy/recipes/add-hwy-needed.sh /opt/fuzzy-src/
-RUN /opt/fuzzy-src/add-hwy-needed.sh && \
-    echo /usr/local/lib/libprism-static.so >> /etc/ld.so.preload
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY docker/fuzzy/bin/fuzzy /usr/local/bin/fuzzy
 COPY --from=lapack-ieee /opt/fuzzy/ /opt/fuzzy/
 COPY --from=lapack-prism /opt/fuzzy/ /opt/fuzzy/
 COPY --from=python-ieee /opt/fuzzy/ /opt/fuzzy/
 COPY --from=python-prism /opt/fuzzy/ /opt/fuzzy/
+COPY --from=libm-ieee /opt/fuzzy/ /opt/fuzzy/
+COPY --from=libm-prism /opt/fuzzy/ /opt/fuzzy/
+# libfuzzy-libm.so is preloaded by name, from the selected libm build in
+# /opt/fuzzy/active/lib. The empty ieee library is also installed system-wide,
+# so that the preload never fails when LD_LIBRARY_PATH does not include it.
+COPY --from=libm-ieee /opt/fuzzy/lib/libm/quad/ieee/lib/libfuzzy-libm.so /usr/local/lib/
+RUN ldconfig
 COPY --from=numpy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
 COPY --from=numpy-ieee /opt/fuzzy/registry/numpy.env /opt/fuzzy/registry/
 COPY --from=numpy-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=scipy-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=scipy-ieee /opt/fuzzy/registry/scipy.env /opt/fuzzy/registry/
+COPY --from=scipy-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=sklearn-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=sklearn-ieee /opt/fuzzy/registry/sklearn.env /opt/fuzzy/registry/
+COPY --from=sklearn-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torch-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torch-ieee /opt/fuzzy/registry/torch.env /opt/fuzzy/registry/
+COPY --from=torch-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchaudio-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchaudio-ieee /opt/fuzzy/registry/torchaudio.env /opt/fuzzy/registry/
+COPY --from=torchaudio-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchvision-ieee /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
+COPY --from=torchvision-ieee /opt/fuzzy/registry/torchvision.env /opt/fuzzy/registry/
+COPY --from=torchvision-prism /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
 COPY --from=prism-runtime /opt/fuzzy/wheels/ /opt/fuzzy/wheels/
 ENV FUZZY_ROOT=/opt/fuzzy \
     LD_LIBRARY_PATH=/opt/fuzzy/active/lib:/usr/local/lib \
+    LD_PRELOAD=libfuzzy-libm.so \
     PYTHONPATH= \
     VFC_BACKENDS="libinterflop_prism.so --mode=sr" \
     VFC_BACKENDS_LOGGER=False \
@@ -126,18 +221,22 @@ ENV FUZZY_ROOT=/opt/fuzzy \
     VIRTUAL_ENV=/opt/fuzzy/venv \
     PATH=/opt/fuzzy/venv/bin:${PATH}
 # Verificarlo's driver keeps running on the system Python, not on whichever
-# CPython build is selected.
+# CPython build is selected. libm switches to prism last: until then the
+# preload is the empty ieee library, from /usr/local/lib.
 RUN sed -i '1s|^#!.*python3$|#!/usr/bin/python3|' /usr/local/bin/verificarlo && \
     fuzzy use lapack=prism python=prism && \
     uv venv --seed --no-cache /opt/fuzzy/venv --python /opt/fuzzy/python/3.12/bin/python3 && \
-    UV_NO_CACHE=1 fuzzy use numpy=prism && \
+    UV_NO_CACHE=1 fuzzy use numpy=prism scipy=prism sklearn=prism torch=prism torchaudio=prism torchvision=prism && \
+    fuzzy use libm=prism && \
     fuzzy list
 WORKDIR /workdir
 CMD ["/bin/bash"]
 
 FROM final AS test
 ARG LEVEL=x86-64-v3
+ARG VERIFICARLO_VERSION=v2.7.0
 COPY docker/fuzzy/tests/ /opt/fuzzy-tests/
 COPY docker/fuzzy/recipes/wheeltool.py /opt/fuzzy-tests/
+COPY docker/fuzzy/recipes/wrappers/ /opt/fuzzy-tests/wrappers/
 COPY docker/resources/lapack/test_blas.c docker/resources/numpy-sanity-check.py /opt/fuzzy-tests/
-RUN /opt/fuzzy-tests/run.sh "${LEVEL}"
+RUN FUZZY_VERIFICARLO_VERSION="${VERIFICARLO_VERSION}" /opt/fuzzy-tests/run.sh "${LEVEL}"

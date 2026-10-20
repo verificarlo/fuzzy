@@ -1,196 +1,179 @@
+name: Level images
 on:
   push:
-    branches: ["*"]
+    branches: ['**']
+    paths: ['docker/fuzzy/**', 'docker/resources/**', '.github/workflows/build-fuzzy.yml']
   pull_request:
-    branches: ["*"]
+    paths: ['docker/fuzzy/**', 'docker/resources/**', '.github/workflows/build-fuzzy.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzzy-level-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  VERIFICARLO_VERSION: v2.6.0
+  FUZZY_VERIFICARLO_VERSION: v2.7.0
+  FUZZY_PRISM_VERSION: 0.0.12
 
 jobs:
-  fuzzy:
+  matrix:
     runs-on: ubuntu-24.04
-    env:
-      RUN_IF_CHANGED: Dockerfile
+    outputs:
+      include: ${{ steps.matrix.outputs.include }}
+    steps:
+      - id: matrix
+        env:
+          TRUSTED: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          rows = [dict(level=f'v{i}', isa=isa, runner=['ubuntu-24.04'])
+                  for i, isa in enumerate(['sse2', 'sse4', 'avx2'], 1)]
+          # Fork PRs run on hosted runners. The fork's push workflow may also
+          # validate v4 on its own trusted self-hosted runner.
+          if os.environ['TRUSTED'] == 'true':
+              rows.append(dict(level='v4', isa='avx512',
+                               runner=['self-hosted', 'Linux', 'X64', 'avx512']))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('include=' + json.dumps(rows) + '\n')
+          PYTHON
+
+  build:
+    needs: matrix
+    name: Level image ${{ matrix.level }}
     strategy:
-      max-parallel: 1
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.matrix.outputs.include) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free hosted runner disk space
+        if: matrix.level != 'v4'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - name: Build and test both flavors
+        run: |
+          if [ -n "${FUZZY_SLURM_HOST:-}" ]; then
+            python3 docker/fuzzy/offline/remote-build.py '${{ matrix.level }}'
+          else
+            docker/fuzzy/build.sh '${{ matrix.level }}' "${FUZZY_CONTAINER_ENGINE:-docker}"
+          fi
+      - name: Export image for target CPU checks
+        if: matrix.level != 'v4'
+        run: |
+          cd "$RUNNER_TEMP"
+          image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}"
+          docker save "$image" | gzip -1 > 'fuzzy-${{ matrix.level }}.tar.gz'
+          sha256sum 'fuzzy-${{ matrix.level }}.tar.gz' > 'fuzzy-${{ matrix.level }}.tar.gz.sha256'
+      - uses: actions/upload-artifact@v4
+        if: matrix.level != 'v4'
+        with:
+          name: fuzzy-${{ matrix.level }}
+          path: |
+            ${{ runner.temp }}/fuzzy-${{ matrix.level }}.tar.gz
+            ${{ runner.temp }}/fuzzy-${{ matrix.level }}.tar.gz.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+          overwrite: true
+      - name: Authenticate to Docker Hub
+        if: matrix.level == 'v4' && github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        run: printf '%s' "$DOCKER_TOKEN" | "${FUZZY_CONTAINER_ENGINE:-docker}" login --username "$DOCKER_USERNAME" --password-stdin
+      - name: Publish validated level and ISA tags
+        if: matrix.level == 'v4' && github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          engine=${FUZZY_CONTAINER_ENGINE:-docker}
+          for suffix in 'x86-64-${{ matrix.level }}' '${{ matrix.isa }}'; do
+            "$engine" tag "verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix" "docker.io/verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix"
+            "$engine" push "docker.io/verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix"
+          done
+
+  sde:
+    # A hosted v2 build can take over four hours. Give the complete target
+    # CPU checks their own job instead of sharing the six-hour job limit.
+    needs: build
+    name: Target CPU ${{ matrix.level }}
+    strategy:
+      fail-fast: false
       matrix:
         include:
-          - NAME: Lapack + Libmath
-            FROM: ""
-            TO: lapack
-            DOCKER_FILE: ./docker/python/Dockerfile.0-lapack-libmath
-
-          - NAME: Python
-            FROM: "lapack"
-            TO: lapack-python3.12.13
-            DOCKER_FILE: ./docker/python/Dockerfile.1-python
-
-          - NAME: Numpy
-            FROM: "lapack-python3.12.13"
-            TO: lapack-python3.12.13-numpy
-            DOCKER_FILE: ./docker/python/Dockerfile.2-numpy
-
-          - NAME: Scipy
-            FROM: "lapack-python3.12.13-numpy"
-            TO: lapack-python3.12.13-numpy-scipy
-            DOCKER_FILE: ./docker/python/Dockerfile.3-scipy
-
-          - NAME: Scikit-Learn
-            FROM: "lapack-python3.12.13-numpy-scipy"
-            TO: lapack-python3.12.13-numpy-scipy-sklearn
-            DOCKER_FILE: ./docker/python/Dockerfile.4-sklearn
-
-    name: ${{ matrix.NAME }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check for file changes
-        uses: tj-actions/changed-files@v46
-        id: changes
-
-      - name: Print list of changed files
-        run: echo ${{ steps.changes.outputs.files }}
-
-      - name: If Dockerfiles have been updated, cancel running upstream jobs
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
-        continue-on-error: true
-        uses: n1hility/cancel-previous-runs@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Determine if images will be pushed to Docker, and login as needed
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
-        run: |
-          if ([ "${{github.event_name}}" == "push" ] && [ "${{github.ref}}" == "refs/heads/master" ])
-          then
-              echo This is a push to master: we will push to Docker Hub
-              echo "PUSH=true" >> "$GITHUB_ENV"
-              export PUSH=true
-              docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          else
-              echo This is a PR or non-master push: we will not push to Docker Hub
-              echo "PUSH=false" >> "$GITHUB_ENV"
-          fi
-
-      - name: Download Docker artifacts, if available
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}') && matrix.FROM != ''
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: fuzzy_${{ env.VERIFICARLO_VERSION }}-${{ matrix.FROM }}
-          path: /tmp
-
-      - name: Build and Push Docker image
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
-        run: |
-          from=fuzzy_${VERIFICARLO_VERSION}-${{ matrix.FROM }}
-          image=verificarlo/fuzzy:${VERIFICARLO_VERSION}-${{ matrix.TO }}
-          if [ -n "${{ matrix.FROM }}" ] && [ -f "/tmp/${from}.tar" ]
-          then
-            docker load --input /tmp/${from}.tar
-            docker image ls -a
-          fi
-
-          docker build ./ -t ${image} \
-                          -f ${{ matrix.DOCKER_FILE }} \
-                          --build-arg VERIFICARLO_VERSION=${VERIFICARLO_VERSION}
-
-          docker save ${image} -o /tmp/fuzzy_${VERIFICARLO_VERSION}-${{ matrix.TO }}.tar
-          if [ "$PUSH" = "true" ]
-          then
-            docker push ${image}
-          fi
-
-      - name: Upload Docker artifacts
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
-        uses: actions/upload-artifact@v4
-        with:
-          name: fuzzy_${{ env.VERIFICARLO_VERSION }}-${{ matrix.TO }}
-          path: /tmp/fuzzy_${{ env.VERIFICARLO_VERSION }}-${{ matrix.TO }}.tar
-
-  # Prototype of one image per x86-64 level (#53): build and test the
-  # x86-64-v3 image. Nothing is pushed yet.
-  fuzzy-level:
-    name: Level image x86-64-v3 (build and test)
+          - {level: v1, isa: sse2}
+          - {level: v2, isa: sse4}
+          - {level: v3, isa: avx2}
     runs-on: ubuntu-24.04
+    timeout-minutes: 360
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check for file changes
-        uses: tj-actions/changed-files@v46
-        id: changes
-        with:
-          files: |
-            docker/fuzzy/**
-            docker/pytorch/Dockerfile.verificarlo
-            docker/resources/**
-
-      - name: Free disk space
-        if: steps.changes.outputs.any_changed == 'true'
+      - uses: actions/checkout@v4
+      - name: Free hosted runner disk space
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/download-artifact@v4
+        with:
+          name: fuzzy-${{ matrix.level }}
+          path: ${{ runner.temp }}
+      - name: Verify and load the built image
+        run: |
+          cd "$RUNNER_TEMP"
+          sha256sum -c 'fuzzy-${{ matrix.level }}.tar.gz.sha256'
+          gzip -dc 'fuzzy-${{ matrix.level }}.tar.gz' | docker load
+          image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}"
+          actual=$(docker image inspect --format '{{index .Config.Labels "org.verificarlo.fuzzy.level"}} {{index .Config.Labels "org.verificarlo.version"}}' "$image")
+          test "$actual" = "x86-64-${{ matrix.level }} ${FUZZY_VERIFICARLO_VERSION}"
+      - name: Install Intel SDE
+        run: docker/fuzzy/tests/install-sde.sh "$RUNNER_TEMP/intel-sde"
+      - name: Test on the target CPU under Intel SDE
+        run: docker/fuzzy/tests/run-sde.sh '${{ matrix.level }}' "verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}" "$RUNNER_TEMP/intel-sde" docker
+      - name: Authenticate to Docker Hub
+        if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        run: printf '%s' "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+      - name: Publish validated level and ISA tags
+        if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-${{ matrix.level }}"
+          for suffix in 'x86-64-${{ matrix.level }}' '${{ matrix.isa }}'; do
+            docker tag "$image" "docker.io/verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix"
+            docker push "docker.io/verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-$suffix"
+          done
 
-      - name: Build and test
-        if: steps.changes.outputs.any_changed == 'true'
-        run: docker/fuzzy/build.sh v3 docker
-
-  rename-publish:
-    needs: fuzzy
+  required-checks:
+    # Preserve the existing protected-branch check names. Each now requires
+    # all native image checks and the complete v1-v3 target CPU checks.
+    needs: [build, sde]
+    if: always()
+    name: ${{ matrix.name }}
+    strategy:
+      matrix:
+        name: ['Lapack + Libmath', 'Python', 'Numpy', 'Scipy', 'Scikit-Learn']
     runs-on: ubuntu-24.04
-    env:
-      RUN_IF_CHANGED: docker
-      DOCKER_IMAGE: verificarlo/fuzzy
-      FINAL_STAGE: lapack-python3.12.13-numpy-scipy-sklearn
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Require all level-image checks to pass
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          SDE_RESULT: ${{ needs.sde.result }}
+        run: test "$BUILD_RESULT" = success && test "$SDE_RESULT" = success
 
-      - name: Check for file changes
-        uses: tj-actions/changed-files@v46
-        id: changes
-
-      - name: Print list of changed files
-        run: echo ${{ steps.changes.outputs.all_changed_files }}
-
-      - name: If Dockerfiles have been updated, cancel running upstream jobs
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
-        uses: n1hility/cancel-previous-runs@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Determine if images will be pushed to Docker, and login as needed
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
+  latest:
+    needs: [build, sde]
+    if: github.repository == 'verificarlo/fuzzy' && github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Authenticate to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        run: printf '%s' "$DOCKER_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+      - name: Point latest at the portable v1 image
         run: |
-          if ([ "${{github.event_name}}" == "push" ] && [ "${{github.ref}}" == "refs/heads/master" ])
-          then
-              echo This is a push to master: we will push to Docker Hub
-              echo "PUSH=true" >> "$GITHUB_ENV"
-              docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          else
-              echo This is a PR or non-master push: we will not push to Docker Hub
-              echo "PUSH=false" >> "$GITHUB_ENV"
-          fi
-
-      - name: Download Docker artifacts, if available
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
-        uses: actions/download-artifact@v4
-        with:
-          name: fuzzy_${{ env.VERIFICARLO_VERSION }}-${{ env.FINAL_STAGE }}
-          path: /tmp
-
-      - name: Load, Rename, and Push Docker image
-        if: contains(steps.changes.outputs.all_changed_files, '${{ env.RUN_IF_CHANGED }}')
-        run: |
-          docker load --input /tmp/fuzzy_${VERIFICARLO_VERSION}-${FINAL_STAGE}.tar
-          docker image ls -a
-
-          docker image tag ${{ env.DOCKER_IMAGE }}:${VERIFICARLO_VERSION}-${FINAL_STAGE} \
-                          ${{ env.DOCKER_IMAGE }}:latest
-
-          if [ "$PUSH" = "true" ]
-          then
-            docker push ${{ env.DOCKER_IMAGE }}:latest
-          fi
+          image="verificarlo/fuzzy:${FUZZY_VERIFICARLO_VERSION}-x86-64-v1"
+          docker pull "$image"
+          docker tag "$image" verificarlo/fuzzy:latest
+          docker push verificarlo/fuzzy:latest

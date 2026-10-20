@@ -1,3 +1,16 @@
+# [v2.7.0] Unreleased
+
+## Added
+    * One image per x86-64 level, with switchable ieee and PRISM builds of LAPACK, CPython, libm, NumPy, SciPy, scikit-learn, PyTorch, torchaudio and torchvision
+    * fuzzy list/use/run/env for package selection and flat local wheel indexes
+    * Image checks for mixed selections, shared runtime, seeded runs, numerical agreement and CPU compatibility under Intel SDE
+    * Four-level release workflow; AVX-512 builds use the self-hosted avx512 runner
+
+## Changed
+    * Use Verificarlo v2.7.0 and its bundled PRISM v0.0.12
+    * Mark per-stack images as legacy; keep their usage guide in LEGACY.md
+    * Use an explicit accumulation loop for the CPython stochastic-rounding example
+
 # [v2.6.0] 2026/09/30
 
 ## Added

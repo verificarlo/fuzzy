@@ -90,7 +90,10 @@ RUN if [ "$WITH_FLANG" = "flang" ]; then \
 # Change 2: Highway's static SSE4, AVX2 and AVX-512 targets also require AES
 # and PCLMUL, which the x86-64-v2/v3/v4 levels do not include; without this
 # define PRISM would fall back to SSSE3 on all three.
-RUN sed -i '/"-DHWY_COMPILE_ONLY_STATIC",/a\    "-DHWY_DISABLE_PCLMUL_AES",' src/backends/prism/constants.bzl && grep -n HWY_DISABLE_PCLMUL_AES src/backends/prism/constants.bzl
+# PRISM has it since verificarlo/prism#20 (v0.0.9).
+RUN grep -q HWY_DISABLE_PCLMUL_AES src/backends/prism/constants.bzl || \
+    sed -i '/"-DHWY_COMPILE_ONLY_STATIC",/a\    "-DHWY_DISABLE_PCLMUL_AES",' src/backends/prism/constants.bzl && \
+    grep -n HWY_DISABLE_PCLMUL_AES src/backends/prism/constants.bzl
 
 # Build verificarlo
 RUN make install-interflop-stdlib
