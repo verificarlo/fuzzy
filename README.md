@@ -18,7 +18,9 @@ torchaudio, torchvision and libm. Select each package independently at run time.
 | x86-64-v4 (AVX-512) | `v2.7.0-x86-64-v4` | `v2.7.0-avx512` |
 
 Choose a level your CPU supports. Use v1 when portability matters; `latest`
-points to v1 after all four release images pass validation.
+points to v1 after all four release images pass validation. Each release is
+also mirrored to the GitHub Container Registry with identical digests, e.g.
+`ghcr.io/verificarlo/fuzzy:v2.7.0-x86-64-v3`.
 
 ```bash
 docker run --rm -it verificarlo/fuzzy:v2.7.0-x86-64-v3
