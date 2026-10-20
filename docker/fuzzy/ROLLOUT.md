@@ -1,7 +1,7 @@
 # Issue #53: v2.7.0 rollout
 
-The implementation is merged after full image validation. The master
-publication workflow is running.
+The implementation is merged and all four release images are published.
+Native and target-CPU checks passed before publication.
 
 ## Required gates
 
@@ -13,10 +13,10 @@ publication workflow is running.
 - [x] Verify default and mixed selections, late runtime loading, seeded
   results, SR variation, RN agreement, runtime sharing, wheel level markers,
   RUNPATHs and ISA checks for the complete package set.
-- [ ] Merge the reviewed implementation and verify the release workflow.
-- [ ] Publish all level tags and ISA aliases; advance `latest` only after
+- [x] Merge the validated implementation and verify the release workflow.
+- [x] Publish all level tags and ISA aliases; advance `latest` only after
   all four levels pass.
-- [ ] Verify the published images and finish the documentation migration.
+- [x] Verify the published images and finish the documentation migration.
 
 The hosted wheel index is optional. The image's flat wheel directories are
 the required local distribution mechanism.
@@ -53,7 +53,36 @@ markers and zero FAIL markers in each suite. Artifact checksum checks,
 image loading, label verification and all protected checks passed.
 [PR #56](https://github.com/verificarlo/fuzzy/pull/56) merged as `cd447d6`.
 The [master publication run](https://github.com/verificarlo/fuzzy/actions/runs/39421857770)
-is validating all four levels before completing publication.
+passed the native and target-CPU gates, published all canonical and ISA
+tags, and advanced `latest` to v1. All five protected checks passed.
+
+## Release verification
+
+The master run passed all four native build jobs. Its v1–v3 target-CPU
+suites each passed all 106 checks with zero FAIL markers and published their
+canonical and ISA tags. After those gates passed, the `latest` push
+completed at 2026-10-20 20:26:25 UTC (2026-10-20 in America/Toronto).
+
+The public v1–v3 manifests match both digest summaries in their
+successful publisher logs. `latest` has the same manifest as v1, matching
+its publisher log. The v4 canonical and AVX-512 tags share the
+configuration of the image tested on AVX-512 hardware:
+`sha256:bebec2025470de3f481b09c3b388a931666a955d2cf0e8c6f599ee65e129a71e`.
+Each verified image reports Linux/amd64, its expected CPU level and
+Verificarlo v2.7.0, and the default PRISM SR and libm preload settings.
+
+| Level | Canonical and ISA-alias manifest |
+| --- | --- |
+| v1 / sse2 | `sha256:b0dafe9ab075c28268ea788dcf4a7c76076eec1bd2aac9b04cd099c96bee6fa5` |
+| v2 / sse4 | `sha256:70ccb03e4d0a657aa67154a026248d3c1aa15ad446fb169e113572d7ca63c317` |
+| v3 / avx2 | `sha256:da709396a54527a2c369b6e3831a95f53d4946347c9c5fa83f6049042b199c43` |
+| v4 / avx512 | `sha256:6224a3add47e70b77981c430b2dfa320f27d85447ca9ad35bb86f165388b0bba` |
+
+The v4 publisher initially failed because Podman requires an explicit
+registry for login. Its targeted retry used `docker.io`, succeeded and
+reused the completed native build. The workflow fix selects `docker.io`
+explicitly for all Docker Hub login commands. The native v1–v3 build
+artifacts were preserved for their complete target-CPU checks.
 
 ## Verified during implementation
 
@@ -102,7 +131,7 @@ is validating all four levels before completing publication.
   submission and tracking, and restoration of completed package stages.
   All four validated OCI archives have been checksum-verified and imported,
   with matching canonical/ISA image IDs and the expected release labels.
-  The master publication workflow remains in progress.
+  The master publication workflow completed successfully.
 
 ## Current build configuration
 
@@ -112,4 +141,4 @@ disabled in both flavors; the precise configuration is documented in the
 image guide. ATen and SLEEF compile flags and ATen dispatch are capped at
 the selected level. Complete native suites have passed at each level,
 and v1–v3 have also passed the complete target-CPU suite. The master
-workflow is validating the release images before publication.
+workflow has published the validated release images.
