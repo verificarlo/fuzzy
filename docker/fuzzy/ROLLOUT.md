@@ -1,7 +1,7 @@
 # Issue #53: v2.7.0 rollout
 
-The release remains in progress. Implementation alone is not publication or
-evidence that a CPU level passes its image checks.
+The implementation is merged after full image validation. The master
+publication workflow is running.
 
 ## Required gates
 
@@ -24,9 +24,9 @@ the required local distribution mechanism.
 ## Current validation results
 
 The image sources at `d1b6da7` passed the complete native suites on
-Rorqual. They match the image inputs at `d42ffb1`, whose changes are
-confined to the workflow. Each image contains all nine registered packages
-in both `ieee` and `prism` flavors.
+Rorqual. They match the image inputs at `d42ffb1` and its merged master
+commit `cd447d6`. Each image contains all nine registered packages in both
+`ieee` and `prism` flavors.
 
 | Level | Native PASS | Target-CPU SDE PASS | FAIL markers |
 | --- | ---: | ---: | ---: |
@@ -45,7 +45,15 @@ packages together and rejects private PRISM copies.
 The same complete suite passed under the v1–v3 SDE CPU profiles. All four
 Slurm jobs completed with exit 0, and their exported archives were
 checksum-verified and imported with matching canonical/ISA image IDs,
-release labels and runtime settings. The hosted workflow remains in progress.
+release labels and runtime settings.
+
+The [hosted PR validation run](https://github.com/verificarlo/fuzzy/actions/runs/39129594118)
+also passed the full native and target-CPU suites for v1–v3, with 106 PASS
+markers and zero FAIL markers in each suite. Artifact checksum checks,
+image loading, label verification and all protected checks passed.
+[PR #56](https://github.com/verificarlo/fuzzy/pull/56) merged as `cd447d6`.
+The [master publication run](https://github.com/verificarlo/fuzzy/actions/runs/39421857770)
+is validating all four levels before completing publication.
 
 ## Verified during implementation
 
@@ -94,7 +102,7 @@ release labels and runtime settings. The hosted workflow remains in progress.
   submission and tracking, and restoration of completed package stages.
   All four validated OCI archives have been checksum-verified and imported,
   with matching canonical/ISA image IDs and the expected release labels.
-  Hosted workflow validation and publication remain required.
+  The master publication workflow remains in progress.
 
 ## Current build configuration
 
@@ -103,5 +111,5 @@ NumPy-2-compatible CPU stack. Optional JIT/quantized CPU backends are
 disabled in both flavors; the precise configuration is documented in the
 image guide. ATen and SLEEF compile flags and ATen dispatch are capped at
 the selected level. Complete native suites have passed at each level,
-and v1–v3 have also passed the complete target-CPU suite. Hosted workflow
-validation and publication remain pending.
+and v1–v3 have also passed the complete target-CPU suite. The master
+workflow is validating the release images before publication.
